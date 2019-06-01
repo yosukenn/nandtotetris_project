@@ -4,6 +4,13 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.BiPredicate;
 
 /** 一つの .vmファイルn対してパースを行うとともに、入力コマンドへのアクセスをカプセル化する。 */
 public class Parser extends BufferedReader {
@@ -12,6 +19,35 @@ public class Parser extends BufferedReader {
 
   public String getCurrentCommand() {
     return this.currentCommand;
+  }
+
+  public static List<String> createVmFileList(String arg) throws IOException {
+    Path dir = Paths.get(arg);
+
+    BiPredicate<Path, BasicFileAttributes> initialFileMatcher =
+        (path, attr) -> {
+          if (attr.isRegularFile() && path.getFileName().toString().equals("Sys.vm")) {
+            return true;
+          }
+          return false;
+        };
+
+    BiPredicate<Path, BasicFileAttributes> vmMatcher =
+        (path, attr) -> {
+          if (attr.isRegularFile()
+              && !path.getFileName().toString().equals("Sys.vm")
+              && path.getFileName().toString().endsWith(".vm")) {
+            return true;
+          }
+          return false;
+        };
+
+    var vmFileList = new ArrayList<String>();
+
+    Files.find(dir, 1, initialFileMatcher).forEach(file -> vmFileList.add(file.toString()));
+    Files.find(dir, 1, vmMatcher).forEach(file -> vmFileList.add(file.toString()));
+
+    return vmFileList;
   }
 
   /**
