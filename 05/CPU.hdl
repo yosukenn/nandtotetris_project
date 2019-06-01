@@ -1,0 +1,110 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/05/CPU.hdl
+
+/**
+ * The Hack CPU (Central Processing unit), consisting of an ALU,
+ * two registers named A and D, and a program counter named PC.
+ * The CPU is designed to fetch and execute instructions written in
+ * the Hack machine language. In particular, functions as follows:
+ * Executes the inputted instruction according to the Hack machine
+ * language specification. The D and A in the language specification
+ * refer to CPU-resident registers, while M refers to the external
+ * memory location addressed by A, i.e. to Memory[A]. The inM input
+ * holds the value of this location. If the current instruction needs
+ * to write a value to M, the value is placed in outM, the address
+ * of the target location is placed in the addressM output, and the
+ * writeM control bit is asserted. (When writeM==0, any value may
+ * appear in outM). The outM and writeM outputs are combinational:
+ * they are affected instantaneously by the execution of the current
+ * instruction. The addressM and pc outputs are clocked: although they
+ * are affected by the execution of the current instruction, they commit
+ * to their new values only in the next time step. If reset==1 then the
+ * CPU jumps to address 0 (i.e. pc is set to 0 in next time step) rather
+ * than to the address resulting from executing the current instruction.
+ */
+
+CHIP CPU {
+
+    IN  inM[16],         // M value input  (M = contents of RAM[A])
+        instruction[16], // Instruction for execution
+        reset;           // Signals whether to re-start the current
+                         // program (reset==1) or continue executing
+                         // the current program (reset==0).
+
+    OUT outM[16],        // M value output
+        writeM,          // Write to M?
+        addressM[15],    // Address in data memory (of M)
+        pc[15];          // address of next instruction
+
+    PARTS:
+    // Put your code here:
+
+    // 1. 命令のデコード
+      // A命令かC命令かを分類する
+      Mux(a=false, b=true, sel=instruction[15], out=acCon); // A命令、C命令を識別する制御ビット
+
+      // C命令の場合のために、comp領域（命令の対象と命令の内容）を切り出す
+      Mux(a=false, b=true, sel=instruction[12], out=preCompA);
+      Mux(a=false, b=preCompA, sel=acCon, out=compA);
+
+      // C命令の場合のために、dest領域（計算結果の保存先）を切り出す
+        // M(RAM[A])への書き込みを行うか
+      Mux(a=false, b=true, sel=instruction[3], out=preWriteM);
+      Mux(a=false, b=preWriteM, sel=acCon, out=writeM);
+
+        // Dレジスタへの書き込みを行うか
+      Mux(a=false, b=true, sel=instruction[4], out=preWriteD);
+      Mux(a=false, b=preWriteD, sel=acCon, out=writeD);
+
+        // Aレジスタへの格納を行うかどうか
+      Mux(a=false, b=true, sel=instruction[5], out=preWriteA);
+      Mux(a=false, b=preWriteA, sel=acCon, out=writeA);
+
+
+      // C命令の場合のために、jump領域（次の命令をフェッチし実行するか、どこか他の場所に位置する命令をフェッチし実行するか）を切り出す
+        // どの条件で特定の命令へジャンプするか
+      Mux(a=false, b=true, sel=instruction[2], out=preNgJump);
+      Mux(a=false, b=preNgJump, sel=acCon, out=ngJump);
+      Mux(a=false, b=true, sel=instruction[1], out=preZeroJump);
+      Mux(a=false, b=preZeroJump, sel=acCon, out=zeroJump);
+      Mux(a=false, b=true, sel=instruction[0], out=preRegularJump);
+      Mux(a=false, b=preRegularJump, sel=acCon, out=regularJump);
+
+
+    // 2. 命令の実行
+      // A命令ならばAレジスタに値を格納、C命令ならば前回のoutMをAレジスタに格納
+      Mux16(a=instruction, b=preOutM, sel=acCon, out=beforeAdr);
+      Not(in=acCon, out=notAcCon);
+      Or(a=notAcCon, b=writeA, out=loadA);
+      ARegister(in=beforeAdr, load=loadA, out=afterAdr);
+
+      // Dレジスタにデータを格納
+      DRegister(in=preOutM, load=writeD, out=d);
+
+      // A命令かC命令かによってALUに渡すデータを制御
+      Mux16(a=afterAdr, b=inM, sel=compA, out=am);
+
+      // Dレジスタのデータとamとして渡されたデータをALUに渡して計算を実行して出力
+      ALU(x=d, y=am, zx=instruction[11], nx=instruction[10], zy=instruction[9], ny=instruction[8], f=instruction[7], no=instruction[6], out=preOutM, zr=zr, ng=ng);
+      Mux16(a=preOutM, b=false, sel=false, out=outM);
+
+      // addressM : データメモリ中のMのアドレス(Aレジスタ内のデータ)を出力
+      Mux16(a=afterAdr, b=false, sel=false, out=preAddressM);
+      BitConverter15(in=preAddressM, out=addressM);
+
+    // 3. 次の命令のフェッチ
+      // 特定の命令へジャンプしたいときはAレジスタのデータを通してジャンプ。それ以外は１を足し続ける。
+      Mux(a=false, b=true, sel=zr, out=resultZr);
+      Mux(a=false, b=resultZr, sel=zeroJump, out=jumpJudge1);
+      Mux(a=false, b=true, sel=ng, out=resultNg);
+      Mux(a=false, b=resultNg, sel=ngJump, out=jumpJudge2);
+      Or(a=jumpJudge1, b=jumpJudge2, out=jumpJudge3);
+      Or(a=zr, b=ng, out=jumpJudge4);
+      Not(in=jumpJudge4, out=notJumpJudge4);
+      Mux(a=false, b=notJumpJudge4, sel=regularJump, out=jumpJudge5);
+      Or(a=jumpJudge3, b=jumpJudge5, out=jumpJudge6);
+      PC(in=afterAdr, load=jumpJudge6, inc=true, reset=reset, out=prePc);
+      BitConverter15(in=prePc, out=pc);
+}

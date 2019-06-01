@@ -1,0 +1,12 @@
+/**
+ * check whether input is less than 0
+ */
+
+CHIP NgLogic {
+    IN in[16];
+    OUT out;
+
+    PARTS:
+   // Put you code here:
+   Mux(sel=in[15], a=false, b=true, out=out);
+}

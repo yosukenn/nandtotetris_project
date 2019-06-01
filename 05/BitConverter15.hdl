@@ -1,0 +1,22 @@
+
+CHIP BitConverter15 {
+    IN in[16];
+    OUT out[15];
+
+    PARTS:
+    Mux(a=false, b=true, sel=in[14], out=out[14]);
+    Mux(a=false, b=true, sel=in[13], out=out[13]);
+    Mux(a=false, b=true, sel=in[12], out=out[12]);
+    Mux(a=false, b=true, sel=in[11], out=out[11]);
+    Mux(a=false, b=true, sel=in[10], out=out[10]);
+    Mux(a=false, b=true, sel=in[9], out=out[9]);
+    Mux(a=false, b=true, sel=in[8], out=out[8]);
+    Mux(a=false, b=true, sel=in[7], out=out[7]);
+    Mux(a=false, b=true, sel=in[6], out=out[6]);
+    Mux(a=false, b=true, sel=in[5], out=out[5]);
+    Mux(a=false, b=true, sel=in[4], out=out[4]);
+    Mux(a=false, b=true, sel=in[3], out=out[3]);
+    Mux(a=false, b=true, sel=in[2], out=out[2]);
+    Mux(a=false, b=true, sel=in[1], out=out[1]);
+    Mux(a=false, b=true, sel=in[0], out=out[0]);
+}

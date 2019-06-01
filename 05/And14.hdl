@@ -1,0 +1,7 @@
+CHIP And14 {
+
+    IN  a[14], b[14];
+    OUT out[16];
+
+    BUILTIN And;
+}
