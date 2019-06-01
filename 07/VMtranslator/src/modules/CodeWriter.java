@@ -144,6 +144,7 @@ public class CodeWriter extends BufferedWriter {
 
   /**
    * labelコマンドを行うアセンブリコードを書く
+   *
    * @param label ラベルシンボル名
    */
   public void writeLabel(String label) throws IOException {
@@ -152,6 +153,7 @@ public class CodeWriter extends BufferedWriter {
 
   /**
    * gotoコマンドを行うアセンブリコードを書く
+   *
    * @param label 移動先アドレスを示すラベルシンボル
    */
   public void writeGoto(String label) throws IOException {
@@ -161,6 +163,7 @@ public class CodeWriter extends BufferedWriter {
 
   /**
    * if-gotoコマンドを行うアセンブリコードを書く
+   *
    * @param label 移動先アドレスを示すラベルシンボル
    */
   public void writeIf(String label) throws IOException {
@@ -173,16 +176,13 @@ public class CodeWriter extends BufferedWriter {
 
   /**
    * callコマンドを行うアセンブリコードを書く
+   *
    * @param functionName 呼び出す関数名
    * @param numArgs 渡す引数の個数
    */
-  public void writeCall(String functionName, long numArgs) {
+  public void writeCall(String functionName, long numArgs) {}
 
-  }
-
-  /**
-   * returnコマンドを行うアセンブリコードを書く
-   */
+  /** returnコマンドを行うアセンブリコードを書く */
   public void writeReturn() throws IOException {
     // 関数の最終の結果をARG(リターン後に戻り値が入る場所)に格納する
     this.writeOneLine("@SP");
@@ -243,7 +243,6 @@ public class CodeWriter extends BufferedWriter {
       count++;
     }
   }
-
 
   private void writeOneLine(String string) throws IOException {
     this.write(string);
@@ -439,7 +438,7 @@ public class CodeWriter extends BufferedWriter {
   private void writePushStaticCommand(int index) throws IOException {
     int lastSlashIndex = this.inputFileName.lastIndexOf("/");
     int lastDotIndex = this.inputFileName.lastIndexOf(".");
-    String vmFileName = this.inputFileName.substring(lastSlashIndex+1, lastDotIndex);
+    String vmFileName = this.inputFileName.substring(lastSlashIndex + 1, lastDotIndex);
 
     this.writeOneLine("@" + vmFileName + "." + index);
     this.writeOneLine("D=M");
@@ -535,7 +534,7 @@ public class CodeWriter extends BufferedWriter {
   private void writePopCommand4(long index) throws IOException {
     int lastSlashIndex = this.inputFileName.lastIndexOf("/");
     int lastDotIndex = this.inputFileName.lastIndexOf(".");
-    String vmFileName = this.inputFileName.substring(lastSlashIndex+1, lastDotIndex);
+    String vmFileName = this.inputFileName.substring(lastSlashIndex + 1, lastDotIndex);
 
     this.writeOneLine("@SP");
     this.writeOneLine("M=M-1");
@@ -544,5 +543,4 @@ public class CodeWriter extends BufferedWriter {
     this.writeOneLine("@" + vmFileName + "." + index);
     this.writeOneLine("M=D");
   }
-
 }
