@@ -175,12 +175,53 @@ public class CodeWriter extends BufferedWriter {
   }
 
   /**
-   * callコマンドを行うアセンブリコードを書く
+   * callコマンドを行うアセンブリコードを書く <br>
+   * n個の引数がスタックにプッシュされた後に呼ばれる。
    *
    * @param functionName 呼び出す関数名
    * @param numArgs 渡す引数の個数
    */
-  public void writeCall(String functionName, long numArgs) {}
+  public void writeCall(String functionName, long numArgs) throws IOException {
+    // リターンアドレスをスタックにプッシュする
+
+    // 関数呼び出し側のLCLを格納する
+    this.writeOneLine("@LCL");
+    this.writeOneLine("D=M");
+    this.writeOneLine("@SP");
+    this.writeOneLine("A=M");
+    this.writeOneLine("M=D");
+    this.writeOneLine("@SP");
+    this.writeOneLine("M=M+1");
+    // 関数呼び出し側のARGを格納する
+    this.writeOneLine("@ARG");
+    this.writeOneLine("D=M");
+    this.writeOneLine("@SP");
+    this.writeOneLine("A=M");
+    this.writeOneLine("M=D");
+    this.writeOneLine("@SP");
+    this.writeOneLine("M=M+1");
+    // 関数呼び出し側のTHISを格納する
+    this.writeOneLine("@THIS");
+    this.writeOneLine("D=M");
+    this.writeOneLine("@SP");
+    this.writeOneLine("A=M");
+    this.writeOneLine("M=D");
+    this.writeOneLine("@SP");
+    this.writeOneLine("M=M+1");
+    // 関数呼び出し側のTHATを格納する
+    this.writeOneLine("@THAT");
+    this.writeOneLine("D=M");
+    this.writeOneLine("@SP");
+    this.writeOneLine("A=M");
+    this.writeOneLine("M=D");
+    this.writeOneLine("@SP");
+    this.writeOneLine("M=M+1");
+    // 呼び出された側が使えるようにARGが示すアドレスを写す
+
+    // 呼び出された側が使えるようにLCLが示すアドレスを写す
+
+    // リターンアドレスのためにラベルを宣言する
+  }
 
   /** returnコマンドを行うアセンブリコードを書く */
   public void writeReturn() throws IOException {

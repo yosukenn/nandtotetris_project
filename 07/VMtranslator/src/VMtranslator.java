@@ -64,6 +64,8 @@ public class VMtranslator {
                 codeWriter.writeFunction(parser.arg1(), parser.arg2());
               } else if (commandType == C_RETURN) {
                 codeWriter.writeReturn();
+              } else if (commandType == C_CALL) {
+                codeWriter.writeCall(parser.arg1(), parser.arg2());
               }
               parser.advance();
             }
