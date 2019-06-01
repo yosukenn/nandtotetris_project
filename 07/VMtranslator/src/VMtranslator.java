@@ -1,12 +1,6 @@
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.BiPredicate;
 import modules.CodeWriter;
 import modules.Parser;
 import static modules.CommandType.*;
@@ -31,21 +25,22 @@ public class VMtranslator {
       System.out.println(e);
     }
 
-    // ParserモジュールでVMの入力ファイルのパースを行う
-    for (var vmFile : vmFileList) {
-      try {
-        try (Parser parser = new Parser(vmFile)) {
+    try {
+      // 指定されたディレクトリ名から生成するアセンブリファイル名を生成する
+      int lastSlashIndexOfInputDir = args[0].lastIndexOf("/");
+      String asmNameMaterial = args[0].substring(lastSlashIndexOfInputDir + 1);
+      try (CodeWriter codeWriter =
+          new CodeWriter(
+              args[0] + "/" + asmNameMaterial + ".asm")) {
+        // ParserモジュールでVMの入力ファイルのパースを行う
+        for (var vmFile : vmFileList) {
+          try (Parser parser = new Parser(vmFile)) {
 
-          // ファイル名となる文字列を生成する
-          int lastSlashIndex = vmFile.lastIndexOf("/");
-          int lastDotIndex = vmFile.lastIndexOf(".");
-          String fileNameMaterial = vmFile.substring(lastSlashIndex + 1, lastDotIndex);
+            // ファイル名となる文字列を生成する
+            int lastSlashIndex = vmFile.lastIndexOf("/");
+            int lastDotIndex = vmFile.lastIndexOf(".");
+            String fileNameMaterial = vmFile.substring(lastSlashIndex + 1, lastDotIndex);
 
-          // CodeWriterモジュールでアセンブリコードを出力ファイルへ書き込む準備を行う。
-          // 入力ファイルのVMコマンドを１行ずつ読み進めながら、アセンブリコードへの変換を行い、出力ファイルへ書き込みを行う。
-          try (CodeWriter codeWriter =
-              new CodeWriter(
-                  vmFile.substring(0, lastSlashIndex) + "/" + fileNameMaterial + ".asm")) {
             codeWriter.setFileName(vmFile);
 
             parser.advance();
@@ -54,7 +49,6 @@ public class VMtranslator {
                 parser.advance();
                 continue;
               }
-
               var commandType = parser.commandType();
               if (commandType == C_ARITHMETIC) {
                 codeWriter.writeArithmetic(parser.command());
@@ -71,15 +65,14 @@ public class VMtranslator {
               } else if (commandType == C_RETURN) {
                 codeWriter.writeReturn();
               }
-
               parser.advance();
             }
           }
         }
-      } catch (IOException e) {
-        System.out.println(e.getMessage());
-        System.out.println(e.getStackTrace());
       }
+    } catch (IOException e) {
+      System.out.println(e.getMessage());
+      System.out.println(e.getStackTrace());
     }
   }
 }
