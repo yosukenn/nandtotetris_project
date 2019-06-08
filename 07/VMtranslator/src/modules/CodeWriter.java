@@ -10,6 +10,7 @@ public class CodeWriter extends BufferedWriter {
   private String inputFileName = "";
   private long writeCount = 0;
 
+  private static final String INIT_FUNCTION = "Sys.init"
   private static final String RETURN_ADDRESS = "return-address";
 
   public CodeWriter(String outputFile) throws IOException {
@@ -142,7 +143,13 @@ public class CodeWriter extends BufferedWriter {
    * VMの初期化（ブートストラップ）を行うアセンブリコードを書く。<br>
    * これは出力ファイルの先頭に配置しなければならない。
    */
-  public void writeInit() {}
+  public void writeInit() throws Exception {
+    this.writeOneLine("@256");
+    this.writeOneLine("D=A");
+    this.writeOneLine("@SP");
+    this.writeOneLine("M=D");
+    this.writeCall(INIT_FUNCTION, 0);
+  }
 
   /**
    * labelコマンドを行うアセンブリコードを書く

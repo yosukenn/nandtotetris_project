@@ -32,6 +32,9 @@ public class VMtranslator {
       try (CodeWriter codeWriter =
           new CodeWriter(
               args[0] + "/" + asmNameMaterial + ".asm")) {
+
+        codeWriter.writeInit();
+
         // ParserモジュールでVMの入力ファイルのパースを行う
         for (var vmFile : vmFileList) {
           try (Parser parser = new Parser(vmFile)) {
