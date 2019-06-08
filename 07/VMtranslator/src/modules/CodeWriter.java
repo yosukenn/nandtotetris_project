@@ -10,6 +10,8 @@ public class CodeWriter extends BufferedWriter {
   private String inputFileName = "";
   private long writeCount = 0;
 
+  private static final String RETURN_ADDRESS = "return-address";
+
   public CodeWriter(String outputFile) throws IOException {
     super(new FileWriter(outputFile));
   }
@@ -182,8 +184,14 @@ public class CodeWriter extends BufferedWriter {
    * @param numArgs 渡す引数の個数
    */
   public void writeCall(String functionName, long numArgs) throws IOException {
-    // リターンアドレスをスタックにプッシュする
-
+    // リターンアドレスをスタックにプッシュする  : リターンアドレス＝呼び出した関数の終了後、実行するコマンドのアドレス
+    this.writeOneLine("@" + RETURN_ADDRESS);
+    this.writeOneLine("D=M");
+    this.writeOneLine("@SP");
+    this.writeOneLine("A=M");
+    this.writeOneLine("M=D");
+    this.writeOneLine("@SP");
+    this.writeOneLine("M=M+1");
     // 関数呼び出し側のLCLを格納する
     this.writeOneLine("@LCL");
     this.writeOneLine("D=M");
@@ -216,11 +224,29 @@ public class CodeWriter extends BufferedWriter {
     this.writeOneLine("M=D");
     this.writeOneLine("@SP");
     this.writeOneLine("M=M+1");
-    // 呼び出された側が使えるようにARGが示すアドレスを写す
+    // 呼び出された側が使えるようにARGが示すアドレスを移す
+    this.writeOneLine("@SP");
+    this.writeOneLine("D=M");
 
-    // 呼び出された側が使えるようにLCLが示すアドレスを写す
+    int count = 0;
+    while (count < 5 + numArgs) {
+      this.writeOneLine("D=D-1");
+      count++;
+    }
+    this.writeOneLine("@ARG");
+    this.writeOneLine("M=D");
+
+    // 呼び出された側が使えるようにLCLが示すアドレスを移す
+    this.writeOneLine("@SP");
+    this.writeOneLine("D=M");
+    this.writeOneLine("@LCL");
+    this.writeOneLine("M=D");
+
+    // 呼び出す関数を呼ぶ
+    this.writeGoto(functionName);
 
     // リターンアドレスのためにラベルを宣言する
+    this.writeLabel(RETURN_ADDRESS);
   }
 
   /** returnコマンドを行うアセンブリコードを書く */
@@ -265,6 +291,9 @@ public class CodeWriter extends BufferedWriter {
     this.writeOneLine("D=M");
     this.writeOneLine("@LCL");
     this.writeOneLine("M=D");
+
+    // リターンアドレスへ移動する
+    this.writeGoto("return-address");
   }
 
   /**
