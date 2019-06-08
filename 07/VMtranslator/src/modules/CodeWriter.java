@@ -10,7 +10,7 @@ public class CodeWriter extends BufferedWriter {
   private String inputFileName = "";
   private long writeCount = 0;
 
-  private static final String INIT_FUNCTION = "Sys.init"
+  private static final String INIT_FUNCTION = "Sys.init";
   private static final String RETURN_ADDRESS = "return-address";
 
   public CodeWriter(String outputFile) throws IOException {
@@ -144,10 +144,30 @@ public class CodeWriter extends BufferedWriter {
    * これは出力ファイルの先頭に配置しなければならない。
    */
   public void writeInit() throws Exception {
+    // スタートアップコード
+    this.writeOneLine("@3000");
+    this.writeOneLine("D=A");
+    this.writeOneLine("@LCL");
+    this.writeOneLine("M=D");
+    this.writeOneLine("@4000");
+    this.writeOneLine("D=A");
+    this.writeOneLine("@ARG");
+    this.writeOneLine("M=D");
+    this.writeOneLine("@5000");
+    this.writeOneLine("D=A");
+    this.writeOneLine("@THIS");
+    this.writeOneLine("M=D");
+    this.writeOneLine("@6000");
+    this.writeOneLine("D=A");
+    this.writeOneLine("@THAT");
+    this.writeOneLine("M=D");
+    // スタックポインタの初期化
     this.writeOneLine("@256");
     this.writeOneLine("D=A");
     this.writeOneLine("@SP");
     this.writeOneLine("M=D");
+
+    // Sys.init関数の呼び出し
     this.writeCall(INIT_FUNCTION, 0);
   }
 
@@ -235,7 +255,7 @@ public class CodeWriter extends BufferedWriter {
     this.writeOneLine("@SP");
     this.writeOneLine("D=M");
 
-    int count = 0;
+    var count = 0;
     while (count < 5 + numArgs) {
       this.writeOneLine("D=D-1");
       count++;
@@ -260,16 +280,13 @@ public class CodeWriter extends BufferedWriter {
   public void writeReturn() throws IOException {
     // 関数の最終の結果をARG(リターン後に戻り値が入る場所)に格納する
     this.writeOneLine("@SP");
-    this.writeOneLine("AM=M-1");
+    this.writeOneLine("M=M-1");
+    this.writeOneLine("A=M");
     this.writeOneLine("D=M");
     this.writeOneLine("@ARG");
     this.writeOneLine("A=M");
     this.writeOneLine("M=D");
-    // SPを戻す
-    this.writeOneLine("@ARG");
-    this.writeOneLine("D=M+1");
-    this.writeOneLine("@SP");
-    this.writeOneLine("M=D");
+
     // THATの復元
     this.writeOneLine("@LCL");
     this.writeOneLine("M=M-1");
@@ -286,7 +303,7 @@ public class CodeWriter extends BufferedWriter {
     this.writeOneLine("M=D");
     // ARGの復元
     this.writeOneLine("@LCL");
-    this.writeOneLine("M=M-1"); // ここでLCLの値は元に戻る
+    this.writeOneLine("M=M-1");
     this.writeOneLine("A=M");
     this.writeOneLine("D=M");
     this.writeOneLine("@ARG");
@@ -299,8 +316,15 @@ public class CodeWriter extends BufferedWriter {
     this.writeOneLine("@LCL");
     this.writeOneLine("M=D");
 
+    // SPを戻す
+    this.writeOneLine("@LCL");
+    this.writeOneLine("D=M-1");
+    this.writeOneLine("D=D-1");
+    this.writeOneLine("@SP");
+    this.writeOneLine("M=D");
+
     // リターンアドレスへ移動する
-    this.writeGoto("return-address");
+    this.writeGoto(RETURN_ADDRESS);
   }
 
   /**

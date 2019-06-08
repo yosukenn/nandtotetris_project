@@ -39,6 +39,8 @@ public class VMtranslator {
         for (var vmFile : vmFileList) {
           try (Parser parser = new Parser(vmFile)) {
 
+            System.out.println(vmFile);
+
             // ファイル名となる文字列を生成する
             int lastSlashIndex = vmFile.lastIndexOf("/");
             int lastDotIndex = vmFile.lastIndexOf(".");
@@ -75,7 +77,7 @@ public class VMtranslator {
           }
         }
       }
-    } catch (IOException e) {
+    } catch (Exception e) {
       System.out.println(e.getMessage());
       System.out.println(e.getStackTrace());
     }
