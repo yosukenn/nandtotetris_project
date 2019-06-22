@@ -1,7 +1,11 @@
 package modules;
 
+import static modules.data.Keyword.*;
+
 import java.io.IOException;
 import java.util.Scanner;
+import modules.data.Keyword;
+import modules.data.TokenType;
 
 /**
  * トークナイザ。<br>
@@ -31,5 +35,50 @@ public class JackTokenizer {
     this.currentTokens = this.scanner.next(); // TODO next()では改行できないかもしれない。
   }
 
+  /** 現トークンの種類を返す。 */
+  public TokenType tokenType() {
+    // TODO あとで実装
+    return TokenType.IDENTIFIER;
+  }
 
+  /**
+   * 現トークンのキーワードを返す。<br>
+   * このルーチンは、tokenType()がKEYWORDの場合のみ呼び出すことができる。
+   */
+  public Keyword keyword() {
+    // TODO あとで実装
+    return CLASS;
+  }
+
+  /**
+   * 現トークンの文字を返す。<br>
+   * このルーチンは、tokenType()がSYMBOLの場合のみ呼び出すことができる。
+   */
+  public char symbol() {
+    return currentTokens.toCharArray()[0];
+  }
+
+  /**
+   * 現トークンの識別子 identifier を返す。<br>
+   * このルーチンは、tokenType() が IDENTIFIER の場合のみ呼び出すことができる。
+   */
+  public String identifier() {
+    return currentTokens;
+  }
+
+  /**
+   * 現トークンの整数の値を返す。<br>
+   * このルーチンは、tokenType()がINT_CONSTの場合のみ呼び出すことができる。
+   */
+  public int intVal() {
+    return Integer.parseInt(currentTokens);
+  }
+
+  /**
+   * 現トークンの文字列を返す。<br>
+   * このルーチンは、tokenType()がSTRING_CONSTの場合のみ呼び出すことができる。
+   */
+  public String stringVal() {
+    return currentTokens;
+  }
 }
