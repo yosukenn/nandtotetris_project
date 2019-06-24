@@ -29,6 +29,20 @@ public class JackAnalyzer {
 
       // ⑶ 入力である JackTokenizer を出力ファイルへコンパイルするために、ConpilationEngine を用いる。
 
+      jackTokenizer.advance();
+      while (jackTokenizer.hasMoreTokens()) {
+        switch (jackTokenizer.tokenType()) {
+          case KEYWORD:
+          case SYSBOL:
+          case INT_CONST:
+          case IDENTIFIER:
+          case STRING_CONST:
+            break;
+        }
+
+        jackTokenizer.advance();
+      }
+
     } catch (IOException e) {
       System.out.println("ファイルを拓けませんでした。");
       System.out.println(e.getMessage());

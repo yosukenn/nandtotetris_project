@@ -52,7 +52,11 @@ public class JackTokenizer {
   /** 現トークンの種類を返す。 */
   public TokenType tokenType() {
     // TODO あとで実装
-    return TokenType.IDENTIFIER;
+    if (checkKeywordType(currentTokens)) {
+      return TokenType.KEYWORD;
+    } else {
+      throw new RuntimeException("どのトークンタイプにも当てはまらない。");
+    }
   }
 
   /**
@@ -94,5 +98,33 @@ public class JackTokenizer {
    */
   public String stringVal() {
     return currentTokens;
+  }
+
+  private boolean checkKeywordType(String currentTokens) {
+    if (currentTokens.contains("class")
+        || currentTokens.contains("constructor")
+        || currentTokens.contains("function")
+        || currentTokens.contains("method")
+        || currentTokens.contains("field")
+        || currentTokens.contains("static")
+        || currentTokens.contains("var")
+        || currentTokens.contains("int")
+        || currentTokens.contains("char")
+        || currentTokens.contains("boolean")
+        || currentTokens.contains("void")
+        || currentTokens.contains("true")
+        || currentTokens.contains("false")
+        || currentTokens.contains("null")
+        || currentTokens.contains("this")
+        || currentTokens.contains("let")
+        || currentTokens.contains("do")
+        || currentTokens.contains("if")
+        || currentTokens.contains("else")
+        || currentTokens.contains("while")
+        || currentTokens.contains("return")) {
+      return true;
+    } else {
+      return false;
+    }
   }
 }
