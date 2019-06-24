@@ -2,6 +2,8 @@ package modules;
 
 import static modules.data.Keyword.*;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Scanner;
 import modules.data.Keyword;
@@ -13,12 +15,24 @@ import modules.data.TokenType;
  */
 public class JackTokenizer {
 
-  Scanner scanner; // scannerがfinalクラスで継承できないため。
+  public Scanner scanner; // scannerがfinalクラスで継承できないため。
 
   private String currentTokens = "";
+  private BufferedWriter writer;
 
   public JackTokenizer(String filename) throws IOException {
     this.scanner = new Scanner(filename);
+
+    int lastSlashIndexOfInputDir = filename.lastIndexOf("/");
+    int lastDotIndexOfInputDir = filename.lastIndexOf(".");
+    String coreName = filename.substring(lastSlashIndexOfInputDir, lastDotIndexOfInputDir + 1);
+    var writer =
+        new BufferedWriter(
+            new FileWriter(
+                "/Users/yosukennturner/Desktop/nand2tetris/nandtotetris_project/10/output"
+                    + coreName
+                    + "T.xml"));
+    this.writer = writer;
   }
 
   /** 入力にまだトークンは存在するかを取得します。 */
