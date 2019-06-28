@@ -12,7 +12,7 @@ public class JackAnalyzer {
   public static void main(String[] args) {
 
     // ⑴ // TODO コマンドライン引数がディレクトリでも対応できるようにする
-    // ex. $ JackAnalyzer source
+    // 実行コマンド ex. $ JackAnalyzer source
     try {
       var jackTokenizer = new JackTokenizer(args[0]);
 
@@ -33,7 +33,7 @@ public class JackAnalyzer {
       while (jackTokenizer.hasMoreTokens()) {
         switch (jackTokenizer.tokenType()) {
           case KEYWORD:
-          case SYSBOL:
+          case SYMBOL:
           case INT_CONST:
           case IDENTIFIER:
           case STRING_CONST:

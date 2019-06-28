@@ -51,9 +51,16 @@ public class JackTokenizer {
 
   /** 現トークンの種類を返す。 */
   public TokenType tokenType() {
-    // TODO あとで実装
     if (checkKeywordType(currentTokens)) {
       return TokenType.KEYWORD;
+    } else if (checkSymbolType(currentTokens)) {
+      return TokenType.SYMBOL;
+    } else if (checkIntConstType(currentTokens)) {
+      return TokenType.INT_CONST;
+    } else if (currentTokens.matches("[^\"\\n]")) {
+      return TokenType.STRING_CONST;
+    } else if (currentTokens.matches("^[a-zA-Z]+[a-zA-Z0-9]]")) {
+      return TokenType.IDENTIFIER;
     } else {
       throw new RuntimeException("どのトークンタイプにも当てはまらない。");
     }
@@ -124,6 +131,41 @@ public class JackTokenizer {
         || currentTokens.contains("return")) {
       return true;
     } else {
+      return false;
+    }
+  }
+
+  private boolean checkSymbolType(String currentTokens) {
+    if (currentTokens.contains("{")
+        || currentTokens.contains("}")
+        || currentTokens.contains("(")
+        || currentTokens.contains(")")
+        || currentTokens.contains("[")
+        || currentTokens.contains("]")
+        || currentTokens.contains(".")
+        || currentTokens.contains(",")
+        || currentTokens.contains(";")
+        || currentTokens.contains("+")
+        || currentTokens.contains("-")
+        || currentTokens.contains("*")
+        || currentTokens.contains("/")
+        || currentTokens.contains("&")
+        || currentTokens.contains("|")
+        || currentTokens.contains("<")
+        || currentTokens.contains(">")
+        || currentTokens.contains("=")
+        || currentTokens.contains("~")) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  private boolean checkIntConstType(String currentTokens) {
+    try {
+      Short.parseShort(currentTokens);
+      return true;
+    } catch (NumberFormatException e) {
       return false;
     }
   }
