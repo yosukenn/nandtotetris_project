@@ -35,9 +35,9 @@ public class JackTokenizer {
     this.writer = writer;
     this.writer.write("<tokens>");
     this.writer.flush();
+    this.writer.newLine();
     this.writer.write("\t");
     this.writer.flush();
-    this.writer.newLine();
   }
 
   public void close() throws IOException {
@@ -137,8 +137,8 @@ public class JackTokenizer {
    */
   public char symbol() throws IOException {
     String SYMBOL = "symbol";
-    char currentSymbolTokn = currentTokens.toCharArray()[0];
-    switch (currentSymbolTokn) {
+    char currentSymbolToken = currentTokens.toCharArray()[0];
+    switch (currentSymbolToken) {
       case '<':
         this.writeTokenAndTab(SYMBOL, "&lt;");
         break;
@@ -152,14 +152,15 @@ public class JackTokenizer {
         this.writeTokenAndTab(SYMBOL, currentTokens);
         break;
     }
-    return currentSymbolTokn;
+    return currentSymbolToken;
   }
 
   /**
    * 現トークンの識別子 identifier を返す。<br>
    * このルーチンは、tokenType() が IDENTIFIER の場合のみ呼び出すことができる。
    */
-  public String identifier() {
+  public String identifier() throws IOException {
+    this.writeTokenAndTab("identifier", currentTokens);
     return currentTokens;
   }
 
@@ -167,7 +168,8 @@ public class JackTokenizer {
    * 現トークンの整数の値を返す。<br>
    * このルーチンは、tokenType()がINT_CONSTの場合のみ呼び出すことができる。
    */
-  public int intVal() {
+  public int intVal() throws IOException {
+    this.writeTokenAndTab("integerConstant", currentTokens);
     return Integer.parseInt(currentTokens);
   }
 
@@ -175,7 +177,10 @@ public class JackTokenizer {
    * 現トークンの文字列を返す。<br>
    * このルーチンは、tokenType()がSTRING_CONSTの場合のみ呼び出すことができる。
    */
-  public String stringVal() {
+  public String stringVal() throws IOException {
+    String currentStringToken =
+        currentTokens.substring(1, currentTokens.length() + 1); // ダブルクォートを取り除く。
+    this.writeTokenAndTab("stringConstant", currentStringToken);
     return currentTokens;
   }
 
@@ -245,6 +250,7 @@ public class JackTokenizer {
   private void writeTokenAndTab(String tokenType, String token) throws IOException {
     this.writer.write("<" + tokenType + "> " + token + " </" + tokenType + ">");
     this.writer.flush();
+    this.writer.newLine();
     this.writer.write("\t");
     this.writer.flush();
   }
