@@ -13,7 +13,7 @@ import modules.data.TokenType;
  * トークナイザ。<br>
  * 入力ストリームから全てのコメントと空白文字を取り除き、Jack文法に従い、Jack言語のトークンへ分割する。
  */
-public class JackTokenizer {
+public class JackTokenizer implements AutoCloseable {
 
   public Scanner scanner; // scannerがfinalクラスで継承できないため。
 
@@ -36,13 +36,13 @@ public class JackTokenizer {
     this.writer.write("<tokens>");
     this.writer.flush();
     this.writer.newLine();
-    this.writer.write("\t");
-    this.writer.flush();
   }
 
+  @Override
   public void close() throws IOException {
     this.writer.write("</tokens>");
     this.writer.flush();
+    this.scanner.close();
     this.writer.close();
   }
 
