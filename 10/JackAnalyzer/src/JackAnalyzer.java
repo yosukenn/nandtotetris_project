@@ -1,6 +1,8 @@
 import java.io.IOException;
+import java.security.Key;
 import modules.CompilationEngine;
 import modules.JackTokenizer;
+import modules.data.Keyword;
 
 /**
  * セットアップや他モジュールの呼び出しを行うモジュール<br>
@@ -33,15 +35,24 @@ public class JackAnalyzer {
       while (jackTokenizer.hasMoreTokens()) {
         switch (jackTokenizer.tokenType()) {
           case KEYWORD:
+            Keyword keyword = jackTokenizer.keyword();
+            break;
           case SYMBOL:
+            char symbol = jackTokenizer.symbol();
+            break;
           case INT_CONST:
+            int intConst = jackTokenizer.intVal();
+            break;
           case IDENTIFIER:
+            String indentifier = jackTokenizer.identifier();
+            break;
           case STRING_CONST:
+            String stringConst = jackTokenizer.stringVal();
             break;
         }
-
         jackTokenizer.advance();
       }
+      jackTokenizer.close();
 
     } catch (IOException e) {
       System.out.println("ファイルを拓けませんでした。");

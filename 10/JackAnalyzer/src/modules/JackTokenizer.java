@@ -33,6 +33,17 @@ public class JackTokenizer {
                     + coreName
                     + "T.xml"));
     this.writer = writer;
+    this.writer.write("<tokens>");
+    this.writer.flush();
+    this.writer.write("\t");
+    this.writer.flush();
+    this.writer.newLine();
+  }
+
+  public void close() throws IOException {
+    this.writer.write("</tokens>");
+    this.writer.flush();
+    this.writer.close();
   }
 
   /** 入力にまだトークンは存在するかを取得します。 */
@@ -70,17 +81,78 @@ public class JackTokenizer {
    * 現トークンのキーワードを返す。<br>
    * このルーチンは、tokenType()がKEYWORDの場合のみ呼び出すことができる。
    */
-  public Keyword keyword() {
-    // TODO あとで実装
-    return CLASS;
+  public Keyword keyword() throws IOException {
+    this.writeTokenAndTab("keyword", currentTokens);
+    switch (currentTokens) {
+      case "class":
+        return CLASS;
+      case "method":
+        return METHOD;
+      case "function":
+        return FUNCTION;
+      case "constructor":
+        return CONSTRUCTOR;
+      case "int":
+        return INT;
+      case "boolean":
+        return BOOLEAN;
+      case "char":
+        return CHAR;
+      case "void":
+        return VOID;
+      case "var":
+        return VAR;
+      case "static":
+        return STATIC;
+      case "field":
+        return FIELD;
+      case "let":
+        return LET;
+      case "do":
+        return DO;
+      case "if":
+        return IF;
+      case "else":
+        return ELSE;
+      case "while":
+        return WHILE;
+      case "return":
+        return RETURN;
+      case "true":
+        return TRUE;
+      case "false":
+        return FALSE;
+      case "null":
+        return NULL;
+      case "this":
+        return THIS;
+      default:
+        throw new IllegalStateException("現トークンが字句要素の種類が\"keyword\"でない。");
+    }
   }
 
   /**
    * 現トークンの文字を返す。<br>
    * このルーチンは、tokenType()がSYMBOLの場合のみ呼び出すことができる。
    */
-  public char symbol() {
-    return currentTokens.toCharArray()[0];
+  public char symbol() throws IOException {
+    String SYMBOL = "symbol";
+    char currentSymbolTokn = currentTokens.toCharArray()[0];
+    switch (currentSymbolTokn) {
+      case '<':
+        this.writeTokenAndTab(SYMBOL, "&lt;");
+        break;
+      case '>':
+        this.writeTokenAndTab(SYMBOL, "&gt;");
+        break;
+      case '&':
+        this.writeTokenAndTab(SYMBOL, "&amp;");
+        break;
+      default:
+        this.writeTokenAndTab(SYMBOL, currentTokens);
+        break;
+    }
+    return currentSymbolTokn;
   }
 
   /**
@@ -168,5 +240,12 @@ public class JackTokenizer {
     } catch (NumberFormatException e) {
       return false;
     }
+  }
+
+  private void writeTokenAndTab(String tokenType, String token) throws IOException {
+    this.writer.write("<" + tokenType + "> " + token + " </" + tokenType + ">");
+    this.writer.flush();
+    this.writer.write("\t");
+    this.writer.flush();
   }
 }

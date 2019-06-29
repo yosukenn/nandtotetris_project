@@ -19,6 +19,7 @@ public enum Keyword {
   WHILE,
   RETURN,
   TRUE,
+  FALSE,
   NULL,
   THIS;
 }
