@@ -1,6 +1,26 @@
 package modules;
 
-import static modules.data.Keyword.*;
+import static modules.data.Keyword.BOOLEAN;
+import static modules.data.Keyword.CHAR;
+import static modules.data.Keyword.CLASS;
+import static modules.data.Keyword.CONSTRUCTOR;
+import static modules.data.Keyword.DO;
+import static modules.data.Keyword.ELSE;
+import static modules.data.Keyword.FALSE;
+import static modules.data.Keyword.FIELD;
+import static modules.data.Keyword.FUNCTION;
+import static modules.data.Keyword.IF;
+import static modules.data.Keyword.INT;
+import static modules.data.Keyword.LET;
+import static modules.data.Keyword.METHOD;
+import static modules.data.Keyword.NULL;
+import static modules.data.Keyword.RETURN;
+import static modules.data.Keyword.STATIC;
+import static modules.data.Keyword.THIS;
+import static modules.data.Keyword.TRUE;
+import static modules.data.Keyword.VAR;
+import static modules.data.Keyword.VOID;
+import static modules.data.Keyword.WHILE;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;

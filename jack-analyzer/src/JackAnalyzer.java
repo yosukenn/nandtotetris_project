@@ -45,10 +45,9 @@ public class JackAnalyzer {
         }
         jackTokenizer.advance();
       }
-      jackTokenizer.close();
 
     } catch (IOException e) {
-      System.out.println("ファイルを拓けませんでした。");
+      System.out.println("ファイルを開けませんでした。");
       System.out.println(e.getMessage());
     } finally {
 
