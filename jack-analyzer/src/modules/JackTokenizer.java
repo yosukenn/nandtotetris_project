@@ -22,7 +22,9 @@ import static modules.data.Keyword.VAR;
 import static modules.data.Keyword.VOID;
 import static modules.data.Keyword.WHILE;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Scanner;
@@ -35,21 +37,25 @@ import modules.data.TokenType;
  */
 public class JackTokenizer implements AutoCloseable {
 
-  public Scanner scanner; // scannerがfinalクラスで継承できないため。
-
   private String currentTokens = "";
+
+  private BufferedReader reader;
+  private int readCount = 0;
+  private String currentLine = null;
+  private Scanner scanner = null;
+
   private BufferedWriter writer;
 
   public JackTokenizer(String filename) throws IOException {
-    this.scanner = new Scanner(filename);
+    this.reader = new BufferedReader(new FileReader(filename));
 
     int lastSlashIndexOfInputDir = filename.lastIndexOf("/");
     int lastDotIndexOfInputDir = filename.lastIndexOf(".");
-    String coreName = filename.substring(lastSlashIndexOfInputDir, lastDotIndexOfInputDir + 1);
+    String coreName = filename.substring(lastSlashIndexOfInputDir, lastDotIndexOfInputDir);
     var writer =
         new BufferedWriter(
             new FileWriter(
-                "/Users/yosukennturner/Desktop/nand2tetris/nandtotetris_project/10/output"
+                "/Users/yosukennturner/Desktop/nand2tetris/nandtotetris_project/jack-analyzer/output"
                     + coreName
                     + "T.xml"));
     this.writer = writer;
@@ -62,6 +68,7 @@ public class JackTokenizer implements AutoCloseable {
   public void close() throws IOException {
     this.writer.write("</tokens>");
     this.writer.flush();
+    this.reader.close();
     this.scanner.close();
     this.writer.close();
   }
@@ -77,7 +84,61 @@ public class JackTokenizer implements AutoCloseable {
    * また、最初は現トークンは設定されない。
    */
   public void advance() throws IOException {
-    this.currentTokens = this.scanner.next(); // TODO next()では改行できないかもしれない。
+    var readLineFlg = false;
+    var readCountForAssert = readCount;
+
+    while (true) {
+      if (readCount == 0 || readLineFlg == true) {
+        while (true) {
+          var line = this.reader.readLine().trim();
+          readCount++;
+          if (line.contains("//")) {
+            String[] lines = line.split("//");
+            line = lines[0];
+          }
+          if (line != null || !line.equals("")) {
+            currentLine = line;
+            break;
+          }
+        }
+      }
+
+      if (readCountForAssert != readCount) {
+        scanner.close();
+        scanner = new Scanner(currentLine); // TODO このscannerが一生閉じない可能性がある問題
+      }
+      var tokenCandidate = scanner.next();
+      if (tokenCandidate.startsWith("/**") || tokenCandidate.startsWith("/*")) {
+        while (true) {
+          if (scanner.hasNext()) {
+            tokenCandidate = scanner.next();
+          } else {
+            readLineFlg = true;
+            scanner.close();
+            break;
+          }
+
+          if (tokenCandidate.startsWith("*/")) {
+            tokenCandidate = scanner.next();
+            break;
+          } else {
+            readLineFlg = true;
+            scanner.close();
+            break;
+          }
+        }
+        if (readLineFlg == true) {
+          continue;
+        }
+      }
+
+      currentTokens = tokenCandidate;
+
+      if (readLineFlg == false) {
+        break;
+      }
+    }
+    // TODO シンボル（,;()など）を１つのトークンとして判別する処理を追加する。
   }
 
   /** 現トークンの種類を返す。 */
@@ -102,7 +163,7 @@ public class JackTokenizer implements AutoCloseable {
    * このルーチンは、tokenType()がKEYWORDの場合のみ呼び出すことができる。
    */
   public Keyword keyword() throws IOException {
-    this.writeTokenAndTab("keyword", currentTokens);
+    this.writeTokenAsOneLine("keyword", currentTokens);
     switch (currentTokens) {
       case "class":
         return CLASS;
@@ -160,16 +221,16 @@ public class JackTokenizer implements AutoCloseable {
     char currentSymbolToken = currentTokens.toCharArray()[0];
     switch (currentSymbolToken) {
       case '<':
-        this.writeTokenAndTab(SYMBOL, "&lt;");
+        this.writeTokenAsOneLine(SYMBOL, "&lt;");
         break;
       case '>':
-        this.writeTokenAndTab(SYMBOL, "&gt;");
+        this.writeTokenAsOneLine(SYMBOL, "&gt;");
         break;
       case '&':
-        this.writeTokenAndTab(SYMBOL, "&amp;");
+        this.writeTokenAsOneLine(SYMBOL, "&amp;");
         break;
       default:
-        this.writeTokenAndTab(SYMBOL, currentTokens);
+        this.writeTokenAsOneLine(SYMBOL, currentTokens);
         break;
     }
     return currentSymbolToken;
@@ -180,7 +241,7 @@ public class JackTokenizer implements AutoCloseable {
    * このルーチンは、tokenType() が IDENTIFIER の場合のみ呼び出すことができる。
    */
   public String identifier() throws IOException {
-    this.writeTokenAndTab("identifier", currentTokens);
+    this.writeTokenAsOneLine("identifier", currentTokens);
     return currentTokens;
   }
 
@@ -189,7 +250,7 @@ public class JackTokenizer implements AutoCloseable {
    * このルーチンは、tokenType()がINT_CONSTの場合のみ呼び出すことができる。
    */
   public int intVal() throws IOException {
-    this.writeTokenAndTab("integerConstant", currentTokens);
+    this.writeTokenAsOneLine("integerConstant", currentTokens);
     return Integer.parseInt(currentTokens);
   }
 
@@ -200,7 +261,7 @@ public class JackTokenizer implements AutoCloseable {
   public String stringVal() throws IOException {
     String currentStringToken =
         currentTokens.substring(1, currentTokens.length() + 1); // ダブルクォートを取り除く。
-    this.writeTokenAndTab("stringConstant", currentStringToken);
+    this.writeTokenAsOneLine("stringConstant", currentStringToken);
     return currentTokens;
   }
 
@@ -245,7 +306,7 @@ public class JackTokenizer implements AutoCloseable {
         || currentTokens.contains("+")
         || currentTokens.contains("-")
         || currentTokens.contains("*")
-        || currentTokens.contains("/")
+        || currentTokens.equals("/")
         || currentTokens.contains("&")
         || currentTokens.contains("|")
         || currentTokens.contains("<")
@@ -267,11 +328,9 @@ public class JackTokenizer implements AutoCloseable {
     }
   }
 
-  private void writeTokenAndTab(String tokenType, String token) throws IOException {
+  private void writeTokenAsOneLine(String tokenType, String token) throws IOException {
     this.writer.write("<" + tokenType + "> " + token + " </" + tokenType + ">");
     this.writer.flush();
     this.writer.newLine();
-    this.writer.write("\t");
-    this.writer.flush();
   }
 }

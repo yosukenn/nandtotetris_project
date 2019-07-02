@@ -18,7 +18,7 @@ public class JackAnalyzer {
       try (var comlilationEngine =
           new CompilationEngine(
               args[0],
-              "/Users/yosukennturner/Desktop/nand2tetris/nandtotetris_project/10/output"
+              "/Users/yosukennturner/Desktop/nand2tetris/nandtotetris_project/jack-analyzer/output"
                   + coreName
                   + ".xml"); ) {
         // ⑶ 入力である JackTokenizer を出力ファイルへコンパイルするために、ConpilationEngine を用いる。
@@ -49,8 +49,6 @@ public class JackAnalyzer {
     } catch (IOException e) {
       System.out.println("ファイルを開けませんでした。");
       System.out.println(e.getMessage());
-    } finally {
-
     }
   }
 }
