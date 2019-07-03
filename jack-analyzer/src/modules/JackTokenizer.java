@@ -39,25 +39,14 @@ public class JackTokenizer implements AutoCloseable {
 
   private String currentTokens = "";
 
-  private BufferedReader reader;
-  private int readCount = 0;
-  private String currentLine = null;
   private Scanner scanner = null;
 
   private BufferedWriter writer;
 
-  public JackTokenizer(String filename) throws IOException {
-    this.reader = new BufferedReader(new FileReader(filename));
+  public JackTokenizer(String outputFilename, String program) throws IOException {
+    this.scanner = new Scanner(program);
 
-    int lastSlashIndexOfInputDir = filename.lastIndexOf("/");
-    int lastDotIndexOfInputDir = filename.lastIndexOf(".");
-    String coreName = filename.substring(lastSlashIndexOfInputDir, lastDotIndexOfInputDir);
-    var writer =
-        new BufferedWriter(
-            new FileWriter(
-                "/Users/yosukennturner/Desktop/nand2tetris/nandtotetris_project/jack-analyzer/output"
-                    + coreName
-                    + "T.xml"));
+    var writer = new BufferedWriter(new FileWriter(outputFilename));
     this.writer = writer;
     this.writer.write("<tokens>");
     this.writer.flush();
@@ -68,14 +57,13 @@ public class JackTokenizer implements AutoCloseable {
   public void close() throws IOException {
     this.writer.write("</tokens>");
     this.writer.flush();
-    this.reader.close();
     this.scanner.close();
     this.writer.close();
   }
 
   /** 入力にまだトークンは存在するかを取得します。 */
   public boolean hasMoreTokens() {
-    return this.currentTokens != null;
+    return this.scanner.hasNext();
   }
 
   /**
@@ -83,60 +71,23 @@ public class JackTokenizer implements AutoCloseable {
    * このルーチンは、hasMoreTokens() が true の場合のみ呼び出すことができる。<br>
    * また、最初は現トークンは設定されない。
    */
+  // TODO tokenizerが正しいxxT.xmlファイルを生成できるかを検証→修正作業中
   public void advance() throws IOException {
-    var readLineFlg = false;
-    var readCountForAssert = readCount;
+    var tokenCandidate = scanner.next();
 
-    while (true) {
-      if (readCount == 0 || readLineFlg == true) {
-        while (true) {
-          var line = this.reader.readLine().trim();
-          readCount++;
-          if (line.contains("//")) {
-            String[] lines = line.split("//");
-            line = lines[0];
-          }
-          if (line != null || !line.equals("")) {
-            currentLine = line;
-            break;
-          }
-        }
-      }
-
-      if (readCountForAssert != readCount) {
-        scanner.close();
-        scanner = new Scanner(currentLine); // TODO このscannerが一生閉じない可能性がある問題
-      }
-      var tokenCandidate = scanner.next();
-      if (tokenCandidate.startsWith("/**") || tokenCandidate.startsWith("/*")) {
-        while (true) {
-          if (scanner.hasNext()) {
-            tokenCandidate = scanner.next();
-          } else {
-            readLineFlg = true;
-            scanner.close();
-            break;
-          }
+    if (tokenCandidate.startsWith("/**")
+        || tokenCandidate.startsWith("/*")) { // TODO ここはhasMoreTokenが持つべきロジックなのでは。
+      while (true) {
+        if (scanner.hasNext()) {
+          tokenCandidate = scanner.next();
 
           if (tokenCandidate.startsWith("*/")) {
             tokenCandidate = scanner.next();
             break;
-          } else {
-            readLineFlg = true;
-            scanner.close();
-            break;
           }
         }
-        if (readLineFlg == true) {
-          continue;
-        }
       }
-
       currentTokens = tokenCandidate;
-
-      if (readLineFlg == false) {
-        break;
-      }
     }
     // TODO シンボル（,;()など）を１つのトークンとして判別する処理を追加する。
   }
