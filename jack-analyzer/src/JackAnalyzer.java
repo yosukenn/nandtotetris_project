@@ -6,6 +6,8 @@ import modules.CompilationEngine;
 import modules.JackTokenizer;
 import modules.data.Keyword;
 
+// TODO ファイル生成先をsourceディレクトリ、もしくはsourceファイルが格納されているディレクトリにする。
+
 /** セットアップや他モジュールの呼び出しを行うモジュール */
 public class JackAnalyzer {
   public static void main(String[] args) {
@@ -91,7 +93,7 @@ public class JackAnalyzer {
         if (!line.equals("")) {
           String[] strArray = line.split("");
           for (String s : strArray) {
-            if (s.matches("[,.;()]")) {
+            if (s.matches("[,.;()\\[\\]\\-\\+]")) {
               readString.append(" " + s + " ");
             } else {
               readString.append(s);

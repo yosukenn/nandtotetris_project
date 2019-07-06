@@ -90,7 +90,7 @@ public class JackTokenizer implements AutoCloseable {
       return TokenType.INT_CONST;
     } else if (currentToken.matches("^[a-zA-Z]+[a-zA-Z0-9]*")) {
       return TokenType.IDENTIFIER;
-    } else if (currentToken.matches("^\".+\"")) { // TODO 正規表現を修正する。
+    } else if (currentToken.matches("^\".+\"")) {
       return TokenType.STRING_CONST;
     } else {
       throw new RuntimeException("どのトークンタイプにも当てはまらない。");
@@ -198,9 +198,9 @@ public class JackTokenizer implements AutoCloseable {
    * このルーチンは、tokenType()がSTRING_CONSTの場合のみ呼び出すことができる。
    */
   public String stringVal() throws IOException {
-    //    String currentStringToken = currentToken.substring(1, currentToken.length()); //
+    String currentStringToken = currentToken.substring(1, currentToken.length() - 1); //
     // ダブルクォートを取り除く。
-    this.writeTokenAsOneLine("stringConstant", currentToken);
+    this.writeTokenAsOneLine("stringConstant", currentStringToken);
     return currentToken;
   }
 
