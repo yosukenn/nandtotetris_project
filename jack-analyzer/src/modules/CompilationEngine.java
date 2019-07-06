@@ -7,17 +7,14 @@ import java.io.IOException;
 /** 再帰によるトップダウン式の解析器<br> */
 public class CompilationEngine implements AutoCloseable {
 
-  JackTokenizer tokenizer;
   BufferedWriter writer;
 
   public CompilationEngine(String inputFile, String outputFile) throws IOException {
-    this.tokenizer = new JackTokenizer(inputFile);
     this.writer = new BufferedWriter(new FileWriter(outputFile));
   }
 
   @Override
   public void close() throws IOException {
-    this.tokenizer.close();
     this.writer.close();
   }
 

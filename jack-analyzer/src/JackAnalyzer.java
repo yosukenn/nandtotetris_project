@@ -13,6 +13,9 @@ public class JackAnalyzer {
     // 実行コマンド ex. $ JackAnalyzer source
 
     String jackProgram = JackAnalyzer.readAllProgramInJackfile(args[0]);
+    System.out.println("---------------------------------------------------------");
+    System.out.println(jackProgram);
+    System.out.println("---------------------------------------------------------");
 
     int lastSlashIndexOfInputDir = args[0].lastIndexOf("/");
     int lastDotIndexOfInputDir = args[0].lastIndexOf(".");
@@ -22,7 +25,6 @@ public class JackAnalyzer {
             + coreName
             + "T.xml";
 
-    // JackTokenizerの初期化。このコンストラクタ内でscannerを初期化。
     try (var jackTokenizer = new JackTokenizer(tokenizerOutputFilename, jackProgram.toString())) {
 
       // ⑵ Xxx.xml という名前の出力ファイルを作り、それに書き込みを行う準備をする。
@@ -73,7 +75,7 @@ public class JackAnalyzer {
           line = lines[0];
         }
         if (!line.equals("")) {
-          readString.append(line);
+          readString.append(" " + line);
         }
         line = reader.readLine();
       }

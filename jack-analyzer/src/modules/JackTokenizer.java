@@ -1,30 +1,8 @@
 package modules;
 
-import static modules.data.Keyword.BOOLEAN;
-import static modules.data.Keyword.CHAR;
-import static modules.data.Keyword.CLASS;
-import static modules.data.Keyword.CONSTRUCTOR;
-import static modules.data.Keyword.DO;
-import static modules.data.Keyword.ELSE;
-import static modules.data.Keyword.FALSE;
-import static modules.data.Keyword.FIELD;
-import static modules.data.Keyword.FUNCTION;
-import static modules.data.Keyword.IF;
-import static modules.data.Keyword.INT;
-import static modules.data.Keyword.LET;
-import static modules.data.Keyword.METHOD;
-import static modules.data.Keyword.NULL;
-import static modules.data.Keyword.RETURN;
-import static modules.data.Keyword.STATIC;
-import static modules.data.Keyword.THIS;
-import static modules.data.Keyword.TRUE;
-import static modules.data.Keyword.VAR;
-import static modules.data.Keyword.VOID;
-import static modules.data.Keyword.WHILE;
+import static modules.data.Keyword.*;
 
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Scanner;
@@ -39,8 +17,7 @@ public class JackTokenizer implements AutoCloseable {
 
   private String currentTokens = "";
 
-  private Scanner scanner = null;
-
+  private Scanner scanner;
   private BufferedWriter writer;
 
   public JackTokenizer(String outputFilename, String program) throws IOException {
@@ -75,8 +52,7 @@ public class JackTokenizer implements AutoCloseable {
   public void advance() throws IOException {
     var tokenCandidate = scanner.next();
 
-    if (tokenCandidate.startsWith("/**")
-        || tokenCandidate.startsWith("/*")) { // TODO ここはhasMoreTokenが持つべきロジックなのでは。
+    if (tokenCandidate.startsWith("/**") || tokenCandidate.startsWith("/*")) {
       while (true) {
         if (scanner.hasNext()) {
           tokenCandidate = scanner.next();
@@ -87,13 +63,15 @@ public class JackTokenizer implements AutoCloseable {
           }
         }
       }
+      // TODO シンボル（,.;()など）を１つのトークンとして判別する処理を追加する。
+
       currentTokens = tokenCandidate;
     }
-    // TODO シンボル（,;()など）を１つのトークンとして判別する処理を追加する。
   }
 
   /** 現トークンの種類を返す。 */
   public TokenType tokenType() {
+    System.out.println(currentTokens);
     if (checkKeywordType(currentTokens)) {
       return TokenType.KEYWORD;
     } else if (checkSymbolType(currentTokens)) {
