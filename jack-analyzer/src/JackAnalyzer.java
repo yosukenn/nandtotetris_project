@@ -1,4 +1,5 @@
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import modules.CompilationEngine;
@@ -9,67 +10,77 @@ import modules.data.Keyword;
 public class JackAnalyzer {
   public static void main(String[] args) {
 
-    // ⑴ // TODO コマンドライン引数がディレクトリでも対応できるようにする
     // 実行コマンド ex. $ JackAnalyzer source
+    var source = new File(args[0]);
+    String jackProgram = JackAnalyzer.readAllProgramInJackfile(source);
 
-    String jackProgram = JackAnalyzer.readAllProgramInJackfile(args[0]);
-    System.out.println(jackProgram);
+    if (source.isDirectory()) {
+      // TODO sourceがディレクトリの時の処理
+      // .jackファイルでフィルターをかけて.jackファイルの配列を作る。
+      // file を one by one でコンパイル処理をする。
+      // トークナイザが出力するファイルも構文木もは.jackにつき1つ
+    } else if (source.isFile()) {
 
-    int lastSlashIndexOfInputDir = args[0].lastIndexOf("/");
-    int lastDotIndexOfInputDir = args[0].lastIndexOf(".");
-    String coreName = args[0].substring(lastSlashIndexOfInputDir, lastDotIndexOfInputDir);
-    String tokenizerOutputFilename =
-        "/Users/yosukennturner/Desktop/nand2tetris/nandtotetris_project/jack-analyzer/output"
-            + coreName
-            + "T.xml";
+      if (!source.getName().endsWith(".jack")) {
+        throw new IllegalArgumentException("指定されたファイルは.jackファイルではありません。");
+      }
 
-    try (var jackTokenizer = new JackTokenizer(tokenizerOutputFilename, jackProgram.toString())) {
-
-      // ⑵ Xxx.xml という名前の出力ファイルを作り、それに書き込みを行う準備をする。
-      String compileEngineOutputFilename =
+      int lastSlashIndexOfInputDir = args[0].lastIndexOf("/");
+      int lastDotIndexOfInputDir = args[0].lastIndexOf(".");
+      String coreName = args[0].substring(lastSlashIndexOfInputDir, lastDotIndexOfInputDir);
+      String tokenizerOutputFilename =
           "/Users/yosukennturner/Desktop/nand2tetris/nandtotetris_project/jack-analyzer/output"
               + coreName
               + "T.xml";
-      try (var comlilationEngine = new CompilationEngine(args[0], compileEngineOutputFilename)) {
-        // ⑶ 入力である JackTokenizer を出力ファイルへコンパイルするために、ConpilationEngine を用いる。
-      }
 
-      jackTokenizer.advance();
-      while (true) {
-        switch (jackTokenizer.tokenType()) {
-          case KEYWORD:
-            Keyword keyword = jackTokenizer.keyword();
-            break;
-          case SYMBOL:
-            char symbol = jackTokenizer.symbol();
-            break;
-          case INT_CONST:
-            int intConst = jackTokenizer.intVal();
-            break;
-          case IDENTIFIER:
-            String indentifier = jackTokenizer.identifier();
-            break;
-          case STRING_CONST:
-            String stringConst = jackTokenizer.stringVal();
-            break;
-        }
-        if (jackTokenizer.hasMoreTokens() == true) {
-          jackTokenizer.advance();
-        } else {
-          break;
-        }
-      }
+      try (var jackTokenizer = new JackTokenizer(tokenizerOutputFilename, jackProgram.toString())) {
 
-    } catch (IOException e) {
-      System.out.println("ファイルを開けませんでした。");
-      System.out.println(e.getMessage());
+        // ⑵ Xxx.xml という名前の出力ファイルを作り、それに書き込みを行う準備をする。
+        String compileEngineOutputFilename =
+            "/Users/yosukennturner/Desktop/nand2tetris/nandtotetris_project/jack-analyzer/output"
+                + coreName
+                + "T.xml";
+        try (var comlilationEngine = new CompilationEngine(source, compileEngineOutputFilename)) {
+          // ⑶ 入力である JackTokenizer を出力ファイルへコンパイルするために、ConpilationEngine を用いる。
+        }
+
+        jackTokenizer.advance();
+        while (true) {
+          switch (jackTokenizer.tokenType()) {
+            case KEYWORD:
+              Keyword keyword = jackTokenizer.keyword();
+              break;
+            case SYMBOL:
+              char symbol = jackTokenizer.symbol();
+              break;
+            case INT_CONST:
+              int intConst = jackTokenizer.intVal();
+              break;
+            case IDENTIFIER:
+              String indentifier = jackTokenizer.identifier();
+              break;
+            case STRING_CONST:
+              String stringConst = jackTokenizer.stringVal();
+              break;
+          }
+          if (jackTokenizer.hasMoreTokens() == true) {
+            jackTokenizer.advance();
+          } else {
+            break;
+          }
+        }
+
+      } catch (IOException e) {
+        System.out.println("ファイルを開けませんでした。");
+        System.out.println(e.getMessage());
+      }
     }
   }
 
-  private static String readAllProgramInJackfile(String filename) {
+  private static String readAllProgramInJackfile(File source) {
     StringBuilder readString = new StringBuilder();
     // 1文字ずつ読んでシンボルだったら空白を挿入する。
-    try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
+    try (BufferedReader reader = new BufferedReader(new FileReader(source))) {
       var line = reader.readLine().trim();
       while (line != null) {
         line.trim();

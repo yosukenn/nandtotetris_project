@@ -1,6 +1,7 @@
 package modules;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 
@@ -9,7 +10,7 @@ public class CompilationEngine implements AutoCloseable {
 
   BufferedWriter writer;
 
-  public CompilationEngine(String inputFile, String outputFile) throws IOException {
+  public CompilationEngine(File inputFile, String outputFile) throws IOException {
     this.writer = new BufferedWriter(new FileWriter(outputFile));
   }
 
