@@ -13,6 +13,7 @@ public class JackAnalyzer {
     // 実行コマンド ex. $ JackAnalyzer source
 
     String jackProgram = JackAnalyzer.readAllProgramInJackfile(args[0]);
+    System.out.println(jackProgram);
 
     int lastSlashIndexOfInputDir = args[0].lastIndexOf("/");
     int lastDotIndexOfInputDir = args[0].lastIndexOf(".");
@@ -34,7 +35,7 @@ public class JackAnalyzer {
       }
 
       jackTokenizer.advance();
-      while (jackTokenizer.hasMoreTokens()) {
+      while (true) {
         switch (jackTokenizer.tokenType()) {
           case KEYWORD:
             Keyword keyword = jackTokenizer.keyword();
@@ -52,7 +53,11 @@ public class JackAnalyzer {
             String stringConst = jackTokenizer.stringVal();
             break;
         }
-        jackTokenizer.advance();
+        if (jackTokenizer.hasMoreTokens() == true) {
+          jackTokenizer.advance();
+        } else {
+          break;
+        }
       }
 
     } catch (IOException e) {

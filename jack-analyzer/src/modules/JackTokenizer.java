@@ -47,6 +47,8 @@ public class JackTokenizer implements AutoCloseable {
    * また、最初は現トークンは設定されない。
    */
   public void advance() {
+    // TODO StringConstantを読み込めるように修正する。
+
     var tokenCandidate = scanner.next();
 
     if (tokenCandidate.startsWith("/**") || tokenCandidate.startsWith("/*")) {
@@ -70,10 +72,10 @@ public class JackTokenizer implements AutoCloseable {
       return TokenType.SYMBOL;
     } else if (checkIntConstType(currentToken)) {
       return TokenType.INT_CONST;
-    } else if (currentToken.matches("[^\"\\n]")) {
-      return TokenType.STRING_CONST;
-    } else if (currentToken.matches("^[a-zA-Z]+[a-zA-Z0-9]+")) {
+    } else if (currentToken.matches("^[a-zA-Z]+[a-zA-Z0-9]*")) {
       return TokenType.IDENTIFIER;
+    } else if (currentToken.matches("[^\"\\n]")) { // TODO 正規表現を修正する。
+      return TokenType.STRING_CONST;
     } else {
       throw new RuntimeException("どのトークンタイプにも当てはまらない。");
     }
@@ -180,8 +182,9 @@ public class JackTokenizer implements AutoCloseable {
    * このルーチンは、tokenType()がSTRING_CONSTの場合のみ呼び出すことができる。
    */
   public String stringVal() throws IOException {
-    String currentStringToken = currentToken.substring(1, currentToken.length()); // ダブルクォートを取り除く。
-    this.writeTokenAsOneLine("stringConstant", currentStringToken);
+    //    String currentStringToken = currentToken.substring(1, currentToken.length()); //
+    // ダブルクォートを取り除く。
+    this.writeTokenAsOneLine("stringConstant", currentToken);
     return currentToken;
   }
 
