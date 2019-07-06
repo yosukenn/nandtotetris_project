@@ -79,9 +79,6 @@ public class JackTokenizer implements AutoCloseable {
 
   /** 現トークンの種類を返す。 */
   public TokenType tokenType() {
-
-    System.out.println(currentToken);
-
     if (checkKeywordType(currentToken)) {
       return TokenType.KEYWORD;
     } else if (checkSymbolType(currentToken)) {

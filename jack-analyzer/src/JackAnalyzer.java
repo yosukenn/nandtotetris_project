@@ -93,7 +93,7 @@ public class JackAnalyzer {
         if (!line.equals("")) {
           String[] strArray = line.split("");
           for (String s : strArray) {
-            if (s.matches("[,.;()\\[\\]\\-\\+]")) {
+            if (s.matches("[,.;()\\[\\]\\-\\+~]")) {
               readString.append(" " + s + " ");
             } else {
               readString.append(s);
