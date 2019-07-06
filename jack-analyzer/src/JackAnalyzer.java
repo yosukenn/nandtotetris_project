@@ -66,6 +66,7 @@ public class JackAnalyzer {
 
   private static String readAllProgramInJackfile(String filename) {
     StringBuilder readString = new StringBuilder();
+    // 1文字ずつ読んでシンボルだったら空白を挿入する。
     try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
       var line = reader.readLine().trim();
       while (line != null) {
@@ -75,7 +76,15 @@ public class JackAnalyzer {
           line = lines[0];
         }
         if (!line.equals("")) {
-          readString.append(" " + line);
+          String[] strArray = line.split("");
+          for (String s : strArray) {
+            if (s.matches("[,.;()]")) {
+              readString.append(" " + s + " ");
+            } else {
+              readString.append(s);
+            }
+          }
+          readString.append(" ");
         }
         line = reader.readLine();
       }
