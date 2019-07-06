@@ -47,8 +47,6 @@ public class JackTokenizer implements AutoCloseable {
    * また、最初は現トークンは設定されない。
    */
   public void advance() {
-    // TODO StringConstantを読み込めるように修正する。
-
     var tokenCandidate = scanner.next();
 
     if (tokenCandidate.startsWith("/**") || tokenCandidate.startsWith("/*")) {
@@ -61,11 +59,29 @@ public class JackTokenizer implements AutoCloseable {
         }
       }
     }
+
+    if (tokenCandidate.startsWith("\"")) {
+      StringBuilder stirngConst = new StringBuilder();
+      stirngConst.append(tokenCandidate);
+      while (true) {
+        stirngConst.append(" ");
+        var word = scanner.next();
+        stirngConst.append(word);
+        if (word.endsWith("\"")) {
+          break;
+        }
+      }
+      tokenCandidate = stirngConst.toString();
+    }
+
     currentToken = tokenCandidate;
   }
 
   /** 現トークンの種類を返す。 */
   public TokenType tokenType() {
+
+    System.out.println(currentToken);
+
     if (checkKeywordType(currentToken)) {
       return TokenType.KEYWORD;
     } else if (checkSymbolType(currentToken)) {
@@ -74,7 +90,7 @@ public class JackTokenizer implements AutoCloseable {
       return TokenType.INT_CONST;
     } else if (currentToken.matches("^[a-zA-Z]+[a-zA-Z0-9]*")) {
       return TokenType.IDENTIFIER;
-    } else if (currentToken.matches("[^\"\\n]")) { // TODO 正規表現を修正する。
+    } else if (currentToken.matches("^\".+\"")) { // TODO 正規表現を修正する。
       return TokenType.STRING_CONST;
     } else {
       throw new RuntimeException("どのトークンタイプにも当てはまらない。");
