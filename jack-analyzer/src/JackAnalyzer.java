@@ -13,9 +13,6 @@ public class JackAnalyzer {
     // 実行コマンド ex. $ JackAnalyzer source
 
     String jackProgram = JackAnalyzer.readAllProgramInJackfile(args[0]);
-    System.out.println("---------------------------------------------------------");
-    System.out.println(jackProgram);
-    System.out.println("---------------------------------------------------------");
 
     int lastSlashIndexOfInputDir = args[0].lastIndexOf("/");
     int lastDotIndexOfInputDir = args[0].lastIndexOf(".");

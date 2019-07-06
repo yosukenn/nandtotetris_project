@@ -15,7 +15,7 @@ import modules.data.TokenType;
  */
 public class JackTokenizer implements AutoCloseable {
 
-  private String currentTokens = "";
+  private String currentToken = "";
 
   private Scanner scanner;
   private BufferedWriter writer;
@@ -23,10 +23,8 @@ public class JackTokenizer implements AutoCloseable {
   public JackTokenizer(String outputFilename, String program) throws IOException {
     this.scanner = new Scanner(program);
 
-    var writer = new BufferedWriter(new FileWriter(outputFilename));
-    this.writer = writer;
+    this.writer = new BufferedWriter(new FileWriter(outputFilename));
     this.writer.write("<tokens>");
-    this.writer.flush();
     this.writer.newLine();
   }
 
@@ -48,39 +46,33 @@ public class JackTokenizer implements AutoCloseable {
    * このルーチンは、hasMoreTokens() が true の場合のみ呼び出すことができる。<br>
    * また、最初は現トークンは設定されない。
    */
-  // TODO tokenizerが正しいxxT.xmlファイルを生成できるかを検証→修正作業中
-  public void advance() throws IOException {
+  public void advance() {
     var tokenCandidate = scanner.next();
 
     if (tokenCandidate.startsWith("/**") || tokenCandidate.startsWith("/*")) {
       while (true) {
-        if (scanner.hasNext()) {
-          tokenCandidate = scanner.next();
+        tokenCandidate = scanner.next();
 
-          if (tokenCandidate.startsWith("*/")) {
-            tokenCandidate = scanner.next();
-            break;
-          }
+        if (tokenCandidate.startsWith("*/")) {
+          tokenCandidate = scanner.next();
+          break;
         }
       }
-      // TODO シンボル（,.;()など）を１つのトークンとして判別する処理を追加する。
-
-      currentTokens = tokenCandidate;
     }
+    currentToken = tokenCandidate;
   }
 
   /** 現トークンの種類を返す。 */
   public TokenType tokenType() {
-    System.out.println(currentTokens);
-    if (checkKeywordType(currentTokens)) {
+    if (checkKeywordType(currentToken)) {
       return TokenType.KEYWORD;
-    } else if (checkSymbolType(currentTokens)) {
+    } else if (checkSymbolType(currentToken)) {
       return TokenType.SYMBOL;
-    } else if (checkIntConstType(currentTokens)) {
+    } else if (checkIntConstType(currentToken)) {
       return TokenType.INT_CONST;
-    } else if (currentTokens.matches("[^\"\\n]")) {
+    } else if (currentToken.matches("[^\"\\n]")) {
       return TokenType.STRING_CONST;
-    } else if (currentTokens.matches("^[a-zA-Z]+[a-zA-Z0-9]]")) {
+    } else if (currentToken.matches("^[a-zA-Z]+[a-zA-Z0-9]+")) {
       return TokenType.IDENTIFIER;
     } else {
       throw new RuntimeException("どのトークンタイプにも当てはまらない。");
@@ -92,8 +84,8 @@ public class JackTokenizer implements AutoCloseable {
    * このルーチンは、tokenType()がKEYWORDの場合のみ呼び出すことができる。
    */
   public Keyword keyword() throws IOException {
-    this.writeTokenAsOneLine("keyword", currentTokens);
-    switch (currentTokens) {
+    this.writeTokenAsOneLine("keyword", currentToken);
+    switch (currentToken) {
       case "class":
         return CLASS;
       case "method":
@@ -147,7 +139,7 @@ public class JackTokenizer implements AutoCloseable {
    */
   public char symbol() throws IOException {
     String SYMBOL = "symbol";
-    char currentSymbolToken = currentTokens.toCharArray()[0];
+    char currentSymbolToken = currentToken.toCharArray()[0];
     switch (currentSymbolToken) {
       case '<':
         this.writeTokenAsOneLine(SYMBOL, "&lt;");
@@ -159,7 +151,7 @@ public class JackTokenizer implements AutoCloseable {
         this.writeTokenAsOneLine(SYMBOL, "&amp;");
         break;
       default:
-        this.writeTokenAsOneLine(SYMBOL, currentTokens);
+        this.writeTokenAsOneLine(SYMBOL, currentToken);
         break;
     }
     return currentSymbolToken;
@@ -170,8 +162,8 @@ public class JackTokenizer implements AutoCloseable {
    * このルーチンは、tokenType() が IDENTIFIER の場合のみ呼び出すことができる。
    */
   public String identifier() throws IOException {
-    this.writeTokenAsOneLine("identifier", currentTokens);
-    return currentTokens;
+    this.writeTokenAsOneLine("identifier", currentToken);
+    return currentToken;
   }
 
   /**
@@ -179,8 +171,8 @@ public class JackTokenizer implements AutoCloseable {
    * このルーチンは、tokenType()がINT_CONSTの場合のみ呼び出すことができる。
    */
   public int intVal() throws IOException {
-    this.writeTokenAsOneLine("integerConstant", currentTokens);
-    return Integer.parseInt(currentTokens);
+    this.writeTokenAsOneLine("integerConstant", currentToken);
+    return Integer.parseInt(currentToken);
   }
 
   /**
@@ -188,10 +180,9 @@ public class JackTokenizer implements AutoCloseable {
    * このルーチンは、tokenType()がSTRING_CONSTの場合のみ呼び出すことができる。
    */
   public String stringVal() throws IOException {
-    String currentStringToken =
-        currentTokens.substring(1, currentTokens.length() + 1); // ダブルクォートを取り除く。
+    String currentStringToken = currentToken.substring(1, currentToken.length()); // ダブルクォートを取り除く。
     this.writeTokenAsOneLine("stringConstant", currentStringToken);
-    return currentTokens;
+    return currentToken;
   }
 
   private boolean checkKeywordType(String currentTokens) {
