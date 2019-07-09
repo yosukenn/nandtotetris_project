@@ -79,6 +79,7 @@ public class JackTokenizer implements AutoCloseable {
 
   /** 現トークンの種類を返す。 */
   public TokenType tokenType() {
+    System.out.println(currentToken);
     if (checkKeywordType(currentToken)) {
       return TokenType.KEYWORD;
     } else if (checkSymbolType(currentToken)) {
@@ -144,7 +145,7 @@ public class JackTokenizer implements AutoCloseable {
       case "this":
         return THIS;
       default:
-        throw new IllegalStateException("現トークンが字句要素の種類が\"keyword\"でない。");
+        throw new IllegalStateException("現トークンの字句要素の種類が\"keyword\"でない。");
     }
   }
 
@@ -202,27 +203,27 @@ public class JackTokenizer implements AutoCloseable {
   }
 
   private boolean checkKeywordType(String currentTokens) {
-    if (currentTokens.contains("class")
-        || currentTokens.contains("constructor")
-        || currentTokens.contains("function")
-        || currentTokens.contains("method")
-        || currentTokens.contains("field")
-        || currentTokens.contains("static")
-        || currentTokens.contains("var")
-        || currentTokens.contains("int")
-        || currentTokens.contains("char")
-        || currentTokens.contains("boolean")
-        || currentTokens.contains("void")
-        || currentTokens.contains("true")
-        || currentTokens.contains("false")
-        || currentTokens.contains("null")
-        || currentTokens.contains("this")
-        || currentTokens.contains("let")
-        || currentTokens.contains("do")
-        || currentTokens.contains("if")
-        || currentTokens.contains("else")
-        || currentTokens.contains("while")
-        || currentTokens.contains("return")) {
+    if (currentTokens.equals("class")
+        || currentTokens.equals("constructor")
+        || currentTokens.equals("function")
+        || currentTokens.equals("method")
+        || currentTokens.equals("field")
+        || currentTokens.equals("static")
+        || currentTokens.equals("var")
+        || currentTokens.equals("int")
+        || currentTokens.equals("char")
+        || currentTokens.equals("boolean")
+        || currentTokens.equals("void")
+        || currentTokens.equals("true")
+        || currentTokens.equals("false")
+        || currentTokens.equals("null")
+        || currentTokens.equals("this")
+        || currentTokens.equals("let")
+        || currentTokens.equals("do")
+        || currentTokens.equals("if")
+        || currentTokens.equals("else")
+        || currentTokens.equals("while")
+        || currentTokens.equals("return")) {
       return true;
     } else {
       return false;
@@ -230,25 +231,25 @@ public class JackTokenizer implements AutoCloseable {
   }
 
   private boolean checkSymbolType(String currentTokens) {
-    if (currentTokens.contains("{")
-        || currentTokens.contains("}")
-        || currentTokens.contains("(")
-        || currentTokens.contains(")")
-        || currentTokens.contains("[")
-        || currentTokens.contains("]")
-        || currentTokens.contains(".")
-        || currentTokens.contains(",")
-        || currentTokens.contains(";")
-        || currentTokens.contains("+")
-        || currentTokens.contains("-")
-        || currentTokens.contains("*")
+    if (currentTokens.equals("{")
+        || currentTokens.equals("}")
+        || currentTokens.equals("(")
+        || currentTokens.equals(")")
+        || currentTokens.equals("[")
+        || currentTokens.equals("]")
+        || currentTokens.equals(".")
+        || currentTokens.equals(",")
+        || currentTokens.equals(";")
+        || currentTokens.equals("+")
+        || currentTokens.equals("-")
+        || currentTokens.equals("*")
         || currentTokens.equals("/")
-        || currentTokens.contains("&")
-        || currentTokens.contains("|")
-        || currentTokens.contains("<")
-        || currentTokens.contains(">")
-        || currentTokens.contains("=")
-        || currentTokens.contains("~")) {
+        || currentTokens.equals("&")
+        || currentTokens.equals("|")
+        || currentTokens.equals("<")
+        || currentTokens.equals(">")
+        || currentTokens.equals("=")
+        || currentTokens.equals("~")) {
       return true;
     } else {
       return false;
