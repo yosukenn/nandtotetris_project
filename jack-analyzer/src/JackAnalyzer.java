@@ -6,42 +6,38 @@ import modules.CompilationEngine;
 import modules.JackTokenizer;
 import modules.data.Keyword;
 
-// TODO ファイル生成先をsourceディレクトリ、もしくはsourceファイルが格納されているディレクトリにする。
+// 実行コマンド ex. $ JackAnalyzer source
+
+// TODO 次回これやる。ファイル生成先をsourceディレクトリ、もしくはsourceファイルが格納されているディレクトリにする。
 
 /** セットアップや他モジュールの呼び出しを行うモジュール */
 public class JackAnalyzer {
   public static void main(String[] args) {
 
-    // 実行コマンド ex. $ JackAnalyzer source
     var source = new File(args[0]);
     String jackProgram = JackAnalyzer.readAllProgramInJackfile(source);
 
     if (source.isDirectory()) {
-      // TODO sourceがディレクトリの時の処理
+      // TODO 上のやつが終わったらこれやる。sourceがディレクトリの時の処理
       // .jackファイルでフィルターをかけて.jackファイルの配列を作る。
       // file を one by one でコンパイル処理をする。
       // トークナイザが出力するファイルも構文木もは.jackにつき1つ
+
+      // TODO 出力先をこのディレクトリにする。source.getName()+[file_name]T.xml, .xml
     } else if (source.isFile()) {
 
       if (!source.getName().endsWith(".jack")) {
         throw new IllegalArgumentException("指定されたファイルは.jackファイルではありません。");
       }
 
-      int lastSlashIndexOfInputDir = args[0].lastIndexOf("/");
-      int lastDotIndexOfInputDir = args[0].lastIndexOf(".");
-      String coreName = args[0].substring(lastSlashIndexOfInputDir, lastDotIndexOfInputDir);
-      String tokenizerOutputFilename =
-          "/Users/yosukennturner/Desktop/nand2tetris/nandtotetris_project/jack-analyzer/output"
-              + coreName
-              + "T.xml";
+      int lastDotIndexOfInputFile = source.getName().lastIndexOf(".");
+      String coreName = source.getName().substring(0, lastDotIndexOfInputFile);
+      String tokenizerOutputFilename = source.getParent() + "/" + coreName + "T.xml";
 
       try (var jackTokenizer = new JackTokenizer(tokenizerOutputFilename, jackProgram.toString())) {
 
         // ⑵ Xxx.xml という名前の出力ファイルを作り、それに書き込みを行う準備をする。
-        String compileEngineOutputFilename =
-            "/Users/yosukennturner/Desktop/nand2tetris/nandtotetris_project/jack-analyzer/output"
-                + coreName
-                + "T.xml";
+        String compileEngineOutputFilename = source.getParent() + "/" + coreName + ".xml";
         try (var comlilationEngine = new CompilationEngine(source, compileEngineOutputFilename)) {
           // ⑶ 入力である JackTokenizer を出力ファイルへコンパイルするために、ConpilationEngine を用いる。
         }
