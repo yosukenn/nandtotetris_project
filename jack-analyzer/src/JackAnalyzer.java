@@ -2,6 +2,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import javax.xml.stream.XMLStreamException;
 import modules.CompilationEngine;
 import modules.JackTokenizer;
 import modules.data.Keyword;
@@ -15,18 +16,23 @@ public class JackAnalyzer {
 
     var source = new File(args[0]);
 
-    if (source.isDirectory()) {
-      File[] jackFiles = source.listFiles();
-      for (var jackFile : jackFiles) {
-        if (jackFile.getName().endsWith(".jack")) {
-          analyze(jackFile);
+    try {
+      if (source.isDirectory()) {
+        File[] jackFiles = source.listFiles();
+        for (var jackFile : jackFiles) {
+          if (jackFile.getName().endsWith(".jack")) {
+            analyze(jackFile);
+          }
         }
+      } else if (source.isFile()) {
+        if (!source.getName().endsWith(".jack")) {
+          throw new IllegalArgumentException("指定されたファイルは.jackファイルではありません。");
+        }
+        analyze(source);
       }
-    } else if (source.isFile()) {
-      if (!source.getName().endsWith(".jack")) {
-        throw new IllegalArgumentException("指定されたファイルは.jackファイルではありません。");
-      }
-      analyze(source);
+    } catch (Exception e) {
+      System.out.println("解析中にエラーが発生したため、プログラムを終了します。");
+      System.exit(1);
     }
   }
 
@@ -62,7 +68,7 @@ public class JackAnalyzer {
     return readString.toString();
   }
 
-  private static void analyze(File source) {
+  private static void analyze(File source) throws IOException, XMLStreamException {
     String jackProgram = JackAnalyzer.readAllProgramInJackfile(source);
 
     int lastDotIndexOfInputFile = source.getName().lastIndexOf(".");
@@ -71,12 +77,6 @@ public class JackAnalyzer {
     String compileEngineOutputFilename = source.getParent() + "/" + coreName + ".xml";
 
     try (var jackTokenizer = new JackTokenizer(tokenizerOutputFilename, jackProgram)) {
-
-      // ⑵ Xxx.xml という名前の出力ファイルを作り、それに書き込みを行う準備をする。
-      try (var comlilationEngine = new CompilationEngine(source, compileEngineOutputFilename)) {
-        // ⑶ 入力である JackTokenizer を出力ファイルへコンパイルするために、ConpilationEngine を用いる。
-        // TODO トークナイザの処理をこの中に入れる。
-      }
 
       jackTokenizer.advance();
       while (true) {
@@ -107,6 +107,13 @@ public class JackAnalyzer {
     } catch (IOException e) {
       System.out.println("ファイルを開けませんでした。");
       System.out.println(e.getMessage());
+    }
+
+    // ⑵ Xxx.xml という名前の出力ファイルを作り、それに書き込みを行う準備をする。
+    try (var comlilationEngine =
+        new CompilationEngine(tokenizerOutputFilename, compileEngineOutputFilename)) {
+      // ⑶ 入力である JackTokenizer を出力ファイルへコンパイルするために、ConpilationEngine を用いる。
+      comlilationEngine.compileClass();
     }
   }
 }
