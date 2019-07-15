@@ -2,12 +2,10 @@ package modules;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamException;
@@ -16,13 +14,11 @@ import javax.xml.stream.XMLStreamReader;
 /** 再帰によるトップダウン式の解析器<br> */
 public class CompilationEngine implements AutoCloseable {
 
-  XMLStreamReader reader;
+  BufferedReader reader;
   BufferedWriter writer;
 
-  public CompilationEngine(String inputFile, String outputFile)
-      throws IOException, XMLStreamException {
-    XMLInputFactory factory = XMLInputFactory.newInstance();
-    this.reader = factory.createXMLStreamReader(new FileInputStream(inputFile));
+  public CompilationEngine(String inputFile, String outputFile) throws IOException {
+    this.reader = new BufferedReader(new FileReader(inputFile));
     this.writer = new BufferedWriter(new FileWriter(outputFile));
   }
 
@@ -39,9 +35,6 @@ public class CompilationEngine implements AutoCloseable {
     // <class></class> の書き出し
 
     // xml要素の種類によって適切な処理を呼び出す。
-    while (this.reader.hasNext()) {
-      int eventType = this.reader.next();
-    }
   }
 
   public void compileClassVarDec() {}
