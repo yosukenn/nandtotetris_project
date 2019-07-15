@@ -76,8 +76,10 @@ public class CompilationEngine implements AutoCloseable {
     Pattern p = Pattern.compile(regex);
     Matcher m = p.matcher(line);
 
-    map.put(ELEMENT_TYPE, m.group(1).substring(1, m.group(1).length() - 1));
-    map.put(CONTENT, m.group(2));
+    if (m.find()) {
+      map.put(ELEMENT_TYPE, m.group(1).substring(1, m.group(1).length() - 1));
+      map.put(CONTENT, m.group(2));
+    }
     return map;
   }
 

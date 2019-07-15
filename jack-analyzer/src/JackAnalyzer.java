@@ -33,7 +33,7 @@ public class JackAnalyzer {
     } catch (Exception e) {
       System.out.println("解析中にエラーが発生したため、プログラムを終了します。");
       System.out.println(e.getMessage());
-      System.out.println(e.getStackTrace());
+      e.printStackTrace();
       System.exit(1);
     }
   }
