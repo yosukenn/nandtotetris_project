@@ -9,6 +9,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
@@ -18,7 +19,8 @@ public class CompilationEngine implements AutoCloseable {
   XMLStreamReader reader;
   BufferedWriter writer;
 
-  public CompilationEngine(String inputFile, String outputFile) throws IOException, XMLStreamException {
+  public CompilationEngine(String inputFile, String outputFile)
+      throws IOException, XMLStreamException {
     XMLInputFactory factory = XMLInputFactory.newInstance();
     this.reader = factory.createXMLStreamReader(new FileInputStream(inputFile));
     this.writer = new BufferedWriter(new FileWriter(outputFile));
@@ -30,8 +32,16 @@ public class CompilationEngine implements AutoCloseable {
     this.writer.close();
   }
 
-  public void compileClass() throws IOException {
-    
+  // TODO まずは書き込みは考えずに読み込みだけ実装。
+  public void compileClass() throws XMLStreamException {
+    // 字句要素 keyword の class でなかったら例外。
+
+    // <class></class> の書き出し
+
+    // xml要素の種類によって適切な処理を呼び出す。
+    while (this.reader.hasNext()) {
+      int eventType = this.reader.next();
+    }
   }
 
   public void compileClassVarDec() {}

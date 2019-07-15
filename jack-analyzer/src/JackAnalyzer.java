@@ -32,6 +32,8 @@ public class JackAnalyzer {
       }
     } catch (Exception e) {
       System.out.println("解析中にエラーが発生したため、プログラムを終了します。");
+      System.out.println(e.getMessage());
+      System.out.println(e.getStackTrace());
       System.exit(1);
     }
   }
@@ -63,6 +65,7 @@ public class JackAnalyzer {
 
     } catch (IOException e) {
       System.out.println("ファイル読み込み中に異常を検知したため、プログラムを異常終了します。");
+      System.out.println(e.getMessage());
       System.exit(1);
     }
     return readString.toString();
@@ -113,7 +116,7 @@ public class JackAnalyzer {
     try (var comlilationEngine =
         new CompilationEngine(tokenizerOutputFilename, compileEngineOutputFilename)) {
       // ⑶ 入力である JackTokenizer を出力ファイルへコンパイルするために、ConpilationEngine を用いる。
-      comlilationEngine.compileClass();
+      comlilationEngine.compileClass(); // 必ず最初はtarminal: class
     }
   }
 }
