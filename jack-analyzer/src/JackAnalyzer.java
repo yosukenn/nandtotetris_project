@@ -85,19 +85,19 @@ public class JackAnalyzer {
       while (true) {
         switch (jackTokenizer.tokenType()) {
           case KEYWORD:
-            Keyword keyword = jackTokenizer.keyword();
+            jackTokenizer.keyword();
             break;
           case SYMBOL:
-            char symbol = jackTokenizer.symbol();
+            jackTokenizer.symbol();
             break;
           case INT_CONST:
-            int intConst = jackTokenizer.intVal();
+            jackTokenizer.intVal();
             break;
           case IDENTIFIER:
-            String indentifier = jackTokenizer.identifier();
+            jackTokenizer.identifier();
             break;
           case STRING_CONST:
-            String stringConst = jackTokenizer.stringVal();
+            jackTokenizer.stringVal();
             break;
         }
         if (jackTokenizer.hasMoreTokens() == true) {

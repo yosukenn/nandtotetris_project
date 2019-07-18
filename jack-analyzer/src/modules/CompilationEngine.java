@@ -11,6 +11,7 @@ import java.util.regex.Pattern;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerException;
@@ -18,6 +19,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 
 /** 再帰によるトップダウン式の解析器<br> */
 public class CompilationEngine implements AutoCloseable {
@@ -33,6 +35,7 @@ public class CompilationEngine implements AutoCloseable {
 
   private static final String ELEMENT_TYPE = "elementType";
   private static final String CONTENT = "content";
+  private static final String ENCLOSED_CONTENT = "enclosed_content";
 
   public CompilationEngine(String inputFile, String outputFile) throws IOException {
     this.reader = new BufferedReader(new FileReader(inputFile));
@@ -44,6 +47,7 @@ public class CompilationEngine implements AutoCloseable {
     try {
       this.documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
     } catch (ParserConfigurationException e) {
+      System.out.println("Document生成に失敗しました。");
       e.printStackTrace();
     }
     document = documentBuilder.newDocument();
@@ -55,32 +59,65 @@ public class CompilationEngine implements AutoCloseable {
   @Override
   public void close() throws IOException {
     this.reader.close();
+
+    // 最後にドキュメントの生成を行う。
     createXMLFile(this.outputFile, this.document);
   }
 
   public void compileClass() throws IOException {
-    var firstLine = parseXmlLine(this.reader.readLine());
+    var firstLine = parseXMLLine(this.reader.readLine());
     if (!firstLine.get(CONTENT).equals("class")) {
       throw new IllegalStateException();
     }
 
     // classを書き込む
+    /*
+    - 要素の生成 → 挿入
+    createElement
+    appendChild
+
+    - テキストの生成 → 挿入
+    createElement
+    appendChild
+     */
+    var klass = document.createElement("class");
+    document.appendChild(klass);
+
+    Element keyword = document.createElement(firstLine.get(ELEMENT_TYPE));
+    klass.appendChild(keyword);
+    keyword.appendChild(document.createTextNode(firstLine.get(ENCLOSED_CONTENT)));
+
+    var secondLine = parseXMLLine(this.reader.readLine());
+    Element identifier = document.createElement(secondLine.get(ELEMENT_TYPE));
+    klass.appendChild(identifier);
+    identifier.appendChild(document.createTextNode(secondLine.get(ENCLOSED_CONTENT)));
+
+    var thirdLine = parseXMLLine(this.reader.readLine());
+    Element symbol = document.createElement(thirdLine.get(ELEMENT_TYPE));
+    klass.appendChild(symbol);
+    symbol.appendChild(document.createTextNode(thirdLine.get(ENCLOSED_CONTENT)));
 
     // xml要素の種類によって適切な処理を呼び出す。
   }
 
-  private Map<String, String> parseXmlLine(String line) {
+  private Map<String, String> parseXMLLine(String line) {
     var map = new HashMap<String, String>();
 
-    String regex = "(<\\w+>) (\\w+) (</\\w+>)";
+    String regex = "(<\\w+>) (\\S+) (</\\w+>)";
     Pattern p = Pattern.compile(regex);
     Matcher m = p.matcher(line);
 
     if (m.find()) {
       map.put(ELEMENT_TYPE, m.group(1).substring(1, m.group(1).length() - 1));
       map.put(CONTENT, m.group(2));
+      map.put(ENCLOSED_CONTENT, encloseBySpace(m.group(2)));
     }
     return map;
+  }
+
+  /** スペースを囲い文字としてつけます。 */
+  private String encloseBySpace(String string) {
+    return " " + string + " ";
   }
 
   public void compileClassVarDec() {}
