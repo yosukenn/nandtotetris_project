@@ -11,7 +11,6 @@ import java.util.regex.Pattern;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerException;
@@ -26,8 +25,7 @@ public class CompilationEngine implements AutoCloseable {
 
   BufferedReader reader;
 
-  // TODO 書き込みはそういうAPIを使ったほうがいい。
-  // 改行とか https://teratail.com/questions/13471
+  // XML文書作成例 https://teratail.com/questions/13471
   DocumentBuilder documentBuilder = null;
   Document document;
 
@@ -70,7 +68,6 @@ public class CompilationEngine implements AutoCloseable {
       throw new IllegalStateException();
     }
 
-    // classを書き込む
     /*
     - 要素の生成 → 挿入
     createElement
@@ -80,24 +77,52 @@ public class CompilationEngine implements AutoCloseable {
     createElement
     appendChild
      */
+    // classの書き込み
     var klass = document.createElement("class");
     document.appendChild(klass);
 
+    // keywordの書き込み
     Element keyword = document.createElement(firstLine.get(ELEMENT_TYPE));
     klass.appendChild(keyword);
     keyword.appendChild(document.createTextNode(firstLine.get(ENCLOSED_CONTENT)));
 
+    // identifierの書き込み
     var secondLine = parseXMLLine(this.reader.readLine());
     Element identifier = document.createElement(secondLine.get(ELEMENT_TYPE));
     klass.appendChild(identifier);
     identifier.appendChild(document.createTextNode(secondLine.get(ENCLOSED_CONTENT)));
 
+    // symbolの書き込み
     var thirdLine = parseXMLLine(this.reader.readLine());
     Element symbol = document.createElement(thirdLine.get(ELEMENT_TYPE));
     klass.appendChild(symbol);
     symbol.appendChild(document.createTextNode(thirdLine.get(ENCLOSED_CONTENT)));
 
     // xml要素の種類によって適切な処理を呼び出す。
+    /*
+    式以外の要素を扱う場合、class直下の構文は以下になる。
+    classVarDec : static, field
+    classVarDec : function, constructor, method
+    symbol
+     */
+    var forthLine = parseXMLLine(this.reader.readLine());
+    switch (forthLine.get(CONTENT)) {
+      case "static":
+      case "field":
+        Element classVarDec = document.createElement("classVarDec");
+        klass.appendChild(classVarDec);
+        compileClassVarDec(classVarDec, forthLine.get(CONTENT), forthLine.get(ENCLOSED_CONTENT));
+        break;
+      case "function":
+      case "constructor":
+      case "method":
+        Element subroutineDec = document.createElement("subroutineDec");
+        klass.appendChild(subroutineDec);
+        compileSubroutine(subroutineDec, forthLine.get(CONTENT), forthLine.get(ENCLOSED_CONTENT));
+        break;
+    }
+
+    // TODO 最後にsymbol"}"を出力
   }
 
   private Map<String, String> parseXMLLine(String line) {
@@ -120,9 +145,36 @@ public class CompilationEngine implements AutoCloseable {
     return " " + string + " ";
   }
 
-  public void compileClassVarDec() {}
+  public void compileClassVarDec(Element classVarDec, String firstType, String firstText)
+      throws IOException {
+    // keywordの書き込み
+    System.out.println(firstText);
+    Element declaration = document.createElement(firstType);
+    classVarDec.appendChild(declaration);
+    declaration.appendChild(document.createTextNode(firstText));
 
-  public void compileSubroutine() {}
+    // keywordの書き込み
+    var secondLine = parseXMLLine(this.reader.readLine());
+    Element dataType = document.createElement(secondLine.get(ELEMENT_TYPE));
+    classVarDec.appendChild(dataType);
+    dataType.appendChild(document.createTextNode(secondLine.get(ENCLOSED_CONTENT)));
+
+    // identifierの書き込み
+    var thirdLine = parseXMLLine(this.reader.readLine());
+    Element identifier = document.createElement(thirdLine.get(ELEMENT_TYPE));
+    classVarDec.appendChild(identifier);
+    identifier.appendChild(document.createTextNode(thirdLine.get(ENCLOSED_CONTENT)));
+
+    // symbol「;」の書き込み
+    var forthLine = parseXMLLine(this.reader.readLine());
+    Element symbol = document.createElement(forthLine.get(ELEMENT_TYPE));
+    classVarDec.appendChild(symbol);
+    symbol.appendChild(document.createTextNode(forthLine.get(ENCLOSED_CONTENT)));
+
+    // TODO symbol「,」で複数のフィールドが宣言されている場合の処理の実装。
+  }
+
+  public void compileSubroutine(Element subroutine, String firstType, String firstText) {}
 
   public void compileParameterList() {}
 
