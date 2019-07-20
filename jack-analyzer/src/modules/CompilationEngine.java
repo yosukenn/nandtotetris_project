@@ -230,7 +230,7 @@ public class CompilationEngine implements AutoCloseable {
           compileWhile(subroutineBody, firstLine);
           continue;
         case "return":
-          compileReturn();
+          compileReturn(subroutineBody, firstLine);
           continue;
         case "if":
           compileIf();
@@ -345,8 +345,26 @@ public class CompilationEngine implements AutoCloseable {
     appendChildIncludeText(whileStatement, sixthLine);
   }
 
-  public void compileReturn() {
-    // TODO 次ここ
+  public void compileReturn(Element subroutineBody, Map<String, String> firstLine)
+      throws IOException {
+    Element returnStatement = document.createElement("returnStatement");
+    subroutineBody.appendChild(returnStatement);
+
+    appendChildIncludeText(returnStatement, firstLine);
+
+    var secondLine = parseXMLLine(this.reader.readLine());
+    appendChildIncludeText(returnStatement, secondLine);
+
+    var thirdLine = parseXMLLine(this.reader.readLine());
+    if (thirdLine.get(ELEMENT_TYPE).equals("identifier")) {
+      compileExpression();
+
+      var forthLine = parseXMLLine(this.reader.readLine());
+      appendChildIncludeText(returnStatement, forthLine);
+
+    } else if (thirdLine.get(ELEMENT_TYPE).equals("symbol")) {
+      appendChildIncludeText(returnStatement, thirdLine);
+    }
   }
 
   public void compileIf() {}
