@@ -68,15 +68,6 @@ public class CompilationEngine implements AutoCloseable {
       throw new IllegalStateException();
     }
 
-    /*
-    - 要素の生成 → 挿入
-    createElement
-    appendChild
-
-    - テキストの生成 → 挿入
-    createElement
-    appendChild
-     */
     // classの書き込み
     var klass = document.createElement("class");
     document.appendChild(klass);
@@ -105,24 +96,28 @@ public class CompilationEngine implements AutoCloseable {
     classVarDec : function, constructor, method
     symbol
      */
-    var forthLine = parseXMLLine(this.reader.readLine());
-    switch (forthLine.get(CONTENT)) {
-      case "static":
-      case "field":
-        Element classVarDec = document.createElement("classVarDec");
-        klass.appendChild(classVarDec);
-        compileClassVarDec(classVarDec, forthLine.get(CONTENT), forthLine.get(ENCLOSED_CONTENT));
-        break;
-      case "function":
-      case "constructor":
-      case "method":
-        Element subroutineDec = document.createElement("subroutineDec");
-        klass.appendChild(subroutineDec);
-        compileSubroutine(subroutineDec, forthLine.get(CONTENT), forthLine.get(ENCLOSED_CONTENT));
-        break;
+    while (true) {
+      var forthLine = parseXMLLine(this.reader.readLine());
+      switch (forthLine.get(CONTENT)) {
+        case "static":
+        case "field":
+          Element classVarDec = document.createElement("classVarDec");
+          klass.appendChild(classVarDec);
+          compileClassVarDec(classVarDec, forthLine);
+          continue;
+        case "function":
+        case "constructor":
+        case "method":
+          Element subroutineDec = document.createElement("subroutineDec");
+          klass.appendChild(subroutineDec);
+          compileSubroutine(subroutineDec, forthLine);
+          continue;
+        case "symbol":
+          // TODO 最後にsymbol"}"を出力
+          break;
+      }
+      break;
     }
-
-    // TODO 最後にsymbol"}"を出力
   }
 
   private Map<String, String> parseXMLLine(String line) {
@@ -145,42 +140,79 @@ public class CompilationEngine implements AutoCloseable {
     return " " + string + " ";
   }
 
-  public void compileClassVarDec(Element classVarDec, String firstType, String firstText)
+  public void compileClassVarDec(Element classVarDec, Map<String, String> stringMap)
       throws IOException {
     // keywordの書き込み
-    System.out.println(firstText);
-    Element declaration = document.createElement(firstType);
-    classVarDec.appendChild(declaration);
-    declaration.appendChild(document.createTextNode(firstText));
+    appendChildIncludeText(classVarDec, stringMap);
 
     // keywordの書き込み
     var secondLine = parseXMLLine(this.reader.readLine());
-    Element dataType = document.createElement(secondLine.get(ELEMENT_TYPE));
-    classVarDec.appendChild(dataType);
-    dataType.appendChild(document.createTextNode(secondLine.get(ENCLOSED_CONTENT)));
+    appendChildIncludeText(classVarDec, secondLine);
 
     // identifierの書き込み
     var thirdLine = parseXMLLine(this.reader.readLine());
-    Element identifier = document.createElement(thirdLine.get(ELEMENT_TYPE));
-    classVarDec.appendChild(identifier);
-    identifier.appendChild(document.createTextNode(thirdLine.get(ENCLOSED_CONTENT)));
+    appendChildIncludeText(classVarDec, thirdLine);
 
     // symbol「;」の書き込み
     var forthLine = parseXMLLine(this.reader.readLine());
-    Element symbol = document.createElement(forthLine.get(ELEMENT_TYPE));
-    classVarDec.appendChild(symbol);
-    symbol.appendChild(document.createTextNode(forthLine.get(ENCLOSED_CONTENT)));
+    appendChildIncludeText(classVarDec, forthLine);
 
     // TODO symbol「,」で複数のフィールドが宣言されている場合の処理の実装。
   }
 
-  public void compileSubroutine(Element subroutine, String firstType, String firstText) {}
+  public void compileSubroutine(Element subroutine, Map<String, String> stringMap)
+      throws IOException {
+    // keywordの書き込み
+    appendChildIncludeText(subroutine, stringMap);
 
-  public void compileParameterList() {}
+    // keywordの書き込み
+    var secondLine = parseXMLLine(this.reader.readLine());
+    appendChildIncludeText(subroutine, secondLine);
+
+    // identifierの書き込み
+    var thirdLine = parseXMLLine(this.reader.readLine());
+    appendChildIncludeText(subroutine, thirdLine);
+
+    // symbol「(」の書き込み
+    var forthLine = parseXMLLine(this.reader.readLine());
+    appendChildIncludeText(subroutine, forthLine);
+
+    // TODO 引数を渡されている場合の処理
+    compileParameterList(subroutine);
+
+    // symbol「)」の書き込み
+    var fifthLine = parseXMLLine(this.reader.readLine());
+    appendChildIncludeText(subroutine, fifthLine);
+
+    // 「{ statements」}」の書き込み
+    compileSubroutineBody(subroutine);
+  }
+
+  private void compileSubroutineBody(Element subroutine) throws IOException {
+    Element subroutineBody = document.createElement("subroutineBody");
+    subroutine.appendChild(subroutineBody);
+
+    // symbol「{」の書き込み
+    var firstLine = parseXMLLine(this.reader.readLine());
+    appendChildIncludeText(subroutine, firstLine);
+
+    // TODO 一連の文をコンパイルする処理
+    compileStatements();
+
+    // symbol「}」の書き込み
+    var secondLine = parseXMLLine(this.reader.readLine());
+    appendChildIncludeText(subroutine, secondLine);
+  }
+
+  public void compileParameterList(Element subtoutine) {
+    // TODO 引数を渡されている場合の処理
+    Element parameterList = document.createElement("parameterList");
+    subtoutine.appendChild(parameterList);
+  }
 
   public void compileVarDec() {}
 
-  public void complieStatements() {}
+  public void compileStatements() {}
 
   public void compileDo() {}
 
@@ -225,5 +257,11 @@ public class CompilationEngine implements AutoCloseable {
     }
 
     return true;
+  }
+
+  private void appendChildIncludeText(Element parent, Map<String, String> stringLine) {
+    Element element = document.createElement(stringLine.get(ELEMENT_TYPE));
+    parent.appendChild(element);
+    element.appendChild(document.createTextNode(stringLine.get(ENCLOSED_CONTENT)));
   }
 }
