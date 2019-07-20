@@ -196,8 +196,7 @@ public class CompilationEngine implements AutoCloseable {
     var firstLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(subroutine, firstLine);
 
-    // TODO 一連の文をコンパイルする処理
-    compileStatements();
+    compileStatements(subroutineBody);
 
     // symbol「}」の書き込み
     var secondLine = parseXMLLine(this.reader.readLine());
@@ -210,9 +209,59 @@ public class CompilationEngine implements AutoCloseable {
     subtoutine.appendChild(parameterList);
   }
 
-  public void compileVarDec() {}
+  public void compileStatements(Element subroutineBody) throws IOException {
+    while (true) {
+      var readLine = this.reader.readLine();
+      if (readLine == null) {
+        break;
+      }
+      var firstLine = parseXMLLine(readLine);
+      switch (firstLine.get(CONTENT)) {
+        case "var":
+          compileVarDec(subroutineBody);
+          continue;
+        case "do":
+          compileDo();
+          continue;
+        case "let":
+          compileLet();
+          continue;
+        case "while":
+          compileWhile();
+          continue;
+        case "return":
+          compileReturn();
+          continue;
+        case "if":
+          compileIf();
+          continue;
+      }
+      // TODO expressionの解析
+    }
+  }
 
-  public void compileStatements() {}
+  public void compileVarDec(Element subroutineBody) throws IOException {
+    Element varDec = document.createElement("varDec");
+    subroutineBody.appendChild(varDec);
+
+    // keyword「var」の出力
+    var firstLine = parseXMLLine(this.reader.readLine());
+    appendChildIncludeText(subroutineBody, firstLine);
+
+    // keyword dataType の出力
+    var secondLine = parseXMLLine(this.reader.readLine());
+    appendChildIncludeText(subroutineBody, secondLine);
+
+    // identifierの出力
+    var thirdLine = parseXMLLine(this.reader.readLine());
+    appendChildIncludeText(subroutineBody, thirdLine);
+
+    // TODO symbol「,」で複数の変数が宣言されている場合の処理の実装。
+
+    // symbol「;」の出力
+    var forthLine = parseXMLLine(this.reader.readLine());
+    appendChildIncludeText(subroutineBody, forthLine);
+  }
 
   public void compileDo() {}
 
@@ -220,7 +269,7 @@ public class CompilationEngine implements AutoCloseable {
 
   public void compileWhile() {}
 
-  public void comileReturn() {}
+  public void compileReturn() {}
 
   public void compileIf() {}
 
