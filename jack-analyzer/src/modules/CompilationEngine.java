@@ -90,12 +90,6 @@ public class CompilationEngine implements AutoCloseable {
     symbol.appendChild(document.createTextNode(thirdLine.get(ENCLOSED_CONTENT)));
 
     // xml要素の種類によって適切な処理を呼び出す。
-    /*
-    式以外の要素を扱う場合、class直下の構文は以下になる。
-    classVarDec : static, field
-    classVarDec : function, constructor, method
-    symbol
-     */
     while (true) {
       var forthLine = parseXMLLine(this.reader.readLine());
       switch (forthLine.get(CONTENT)) {
@@ -112,12 +106,12 @@ public class CompilationEngine implements AutoCloseable {
           klass.appendChild(subroutineDec);
           compileSubroutine(subroutineDec, forthLine);
           continue;
-        case "symbol":
-          // TODO 最後にsymbol"}"を出力
-          break;
       }
       break;
     }
+    // 最後にsymbol"}"を出力
+    var fifthLine = parseXMLLine(this.reader.readLine());
+    appendChildIncludeText(klass, fifthLine);
   }
 
   private Map<String, String> parseXMLLine(String line) {
@@ -233,7 +227,7 @@ public class CompilationEngine implements AutoCloseable {
           compileReturn(subroutineBody, firstLine);
           continue;
         case "if":
-          compileIf();
+          compileIf(subroutineBody, firstLine);
           continue;
       }
       // TODO expressionの解析
@@ -357,7 +351,7 @@ public class CompilationEngine implements AutoCloseable {
 
     var thirdLine = parseXMLLine(this.reader.readLine());
     if (thirdLine.get(ELEMENT_TYPE).equals("identifier")) {
-      compileExpression();
+      compileExpression(returnStatement);
 
       var forthLine = parseXMLLine(this.reader.readLine());
       appendChildIncludeText(returnStatement, forthLine);
@@ -367,7 +361,25 @@ public class CompilationEngine implements AutoCloseable {
     }
   }
 
-  public void compileIf() {}
+  public void compileIf(Element parent, Map<String, String> firstLine) throws IOException {
+    Element ifStatement = document.createElement("ifStatement");
+    parent.appendChild(ifStatement);
+
+    appendChildIncludeText(ifStatement, firstLine);
+
+    var secondLine = parseXMLLine(this.reader.readLine());
+    appendChildIncludeText(ifStatement, secondLine);
+
+    compileExpression(ifStatement);
+
+    var thirdLine = parseXMLLine(this.reader.readLine());
+    appendChildIncludeText(ifStatement, thirdLine);
+
+    compileStatements(ifStatement);
+
+    var forthLine = parseXMLLine(this.reader.readLine());
+    appendChildIncludeText(ifStatement, forthLine);
+  }
 
   public void compileExpression(Element parent) {
     Element expression = document.createElement("expression");
