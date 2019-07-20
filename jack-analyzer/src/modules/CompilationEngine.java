@@ -194,13 +194,13 @@ public class CompilationEngine implements AutoCloseable {
 
     // symbol「{」の書き込み
     var firstLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(subroutine, firstLine);
+    appendChildIncludeText(subroutineBody, firstLine);
 
     compileStatements(subroutineBody);
 
     // symbol「}」の書き込み
     var secondLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(subroutine, secondLine);
+    appendChildIncludeText(subroutineBody, secondLine);
   }
 
   public void compileParameterList(Element subtoutine) {
@@ -218,16 +218,16 @@ public class CompilationEngine implements AutoCloseable {
       var firstLine = parseXMLLine(readLine);
       switch (firstLine.get(CONTENT)) {
         case "var":
-          compileVarDec(subroutineBody);
+          compileVarDec(subroutineBody, firstLine);
           continue;
         case "do":
-          compileDo();
+          compileDo(subroutineBody, firstLine);
           continue;
         case "let":
-          compileLet();
+          compileLet(subroutineBody, firstLine);
           continue;
         case "while":
-          compileWhile();
+          compileWhile(subroutineBody, firstLine);
           continue;
         case "return":
           compileReturn();
@@ -240,44 +240,132 @@ public class CompilationEngine implements AutoCloseable {
     }
   }
 
-  public void compileVarDec(Element subroutineBody) throws IOException {
+  public void compileVarDec(Element subroutineBody, Map<String, String> firstLine)
+      throws IOException {
     Element varDec = document.createElement("varDec");
     subroutineBody.appendChild(varDec);
 
     // keyword「var」の出力
-    var firstLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(subroutineBody, firstLine);
+    appendChildIncludeText(varDec, firstLine);
 
     // keyword dataType の出力
     var secondLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(subroutineBody, secondLine);
+    appendChildIncludeText(varDec, secondLine);
 
     // identifierの出力
     var thirdLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(subroutineBody, thirdLine);
+    appendChildIncludeText(varDec, thirdLine);
 
     // TODO symbol「,」で複数の変数が宣言されている場合の処理の実装。
 
     // symbol「;」の出力
     var forthLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(subroutineBody, forthLine);
+    appendChildIncludeText(varDec, forthLine);
   }
 
-  public void compileDo() {}
+  public void compileDo(Element subroutineBody, Map<String, String> firstLine) throws IOException {
+    Element doStatement = document.createElement("doStatement");
+    subroutineBody.appendChild(doStatement);
 
-  public void compileLet() {}
+    // keyword「do」の出力
+    appendChildIncludeText(doStatement, firstLine);
 
-  public void compileWhile() {}
+    // identifierの出力
+    var secondLine = parseXMLLine(this.reader.readLine());
+    appendChildIncludeText(doStatement, secondLine);
 
-  public void compileReturn() {}
+    // symbol「.」の出力
+    var thirdLine = parseXMLLine(this.reader.readLine());
+    appendChildIncludeText(doStatement, thirdLine);
+
+    // identifierの出力
+    var forthLine = parseXMLLine(this.reader.readLine());
+    appendChildIncludeText(doStatement, forthLine);
+
+    // symbol「(」の出力
+    var fifthLine = parseXMLLine(this.reader.readLine());
+    appendChildIncludeText(doStatement, fifthLine);
+
+    // TODO expressionListの解析
+    compileExpressionList(doStatement);
+
+    // symbol「)」の出力
+    var sixthLine = parseXMLLine(this.reader.readLine());
+    appendChildIncludeText(doStatement, sixthLine);
+
+    // symbol「;」の出力
+    var seventhLine = parseXMLLine(this.reader.readLine());
+    appendChildIncludeText(doStatement, seventhLine);
+  }
+
+  public void compileLet(Element subroutineBody, Map<String, String> firstLine) throws IOException {
+    Element letStatement = document.createElement("letStatement");
+    subroutineBody.appendChild(letStatement);
+
+    appendChildIncludeText(letStatement, firstLine);
+
+    // identifierの出力
+    var secondLine = parseXMLLine(this.reader.readLine());
+    appendChildIncludeText(letStatement, secondLine);
+
+    // symbol「=」の出力
+    var thirdLine = parseXMLLine(this.reader.readLine());
+    appendChildIncludeText(letStatement, thirdLine);
+
+    // TODO expressionの解析
+    compileExpression(letStatement);
+
+    // symbol「;」の出力
+    var forthLine = parseXMLLine(this.reader.readLine());
+    appendChildIncludeText(letStatement, forthLine);
+  }
+
+  public void compileWhile(Element parent, Map<String, String> firstLine) throws IOException {
+    Element whileStatement = document.createElement("whileStatement");
+    parent.appendChild(whileStatement);
+
+    appendChildIncludeText(whileStatement, firstLine);
+
+    var secondLine = parseXMLLine(this.reader.readLine());
+    appendChildIncludeText(whileStatement, secondLine);
+
+    compileExpression(whileStatement);
+
+    var thirdLine = parseXMLLine(this.reader.readLine());
+    appendChildIncludeText(whileStatement, thirdLine);
+
+    // symbol「{」の書き込み
+    var forthLine = parseXMLLine(this.reader.readLine());
+    appendChildIncludeText(whileStatement, forthLine);
+
+    compileStatements(whileStatement);
+
+    // symbol「}」の書き込み
+    var sixthLine = parseXMLLine(this.reader.readLine());
+    appendChildIncludeText(whileStatement, sixthLine);
+  }
+
+  public void compileReturn() {
+    // TODO 次ここ
+  }
 
   public void compileIf() {}
 
-  public void compileExpression() {}
+  public void compileExpression(Element parent) {
+    Element expression = document.createElement("expression");
+    parent.appendChild(expression);
+
+    // TODO expressionの解析
+  }
 
   public void compileTerm() {}
 
-  public void compileExpressionList() {}
+  public void compileExpressionList(Element subroutineBody) {
+    Element expressionList = document.createElement("expressionList");
+    subroutineBody.appendChild(expressionList);
+
+    // TODO expressionListの解析
+  }
 
   private static boolean createXMLFile(File file, Document document) {
 
