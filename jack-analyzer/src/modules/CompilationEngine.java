@@ -182,7 +182,7 @@ public class CompilationEngine implements AutoCloseable {
     var forthLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(subroutine, forthLine);
 
-    // TODO 引数を渡されている場合の処理
+    // TODO 引数を渡されている場合の処理。必要になったら実装。
     compileParameterList(subroutine);
 
     // symbol「)」の書き込み
@@ -209,7 +209,7 @@ public class CompilationEngine implements AutoCloseable {
   }
 
   public void compileParameterList(Element subtoutine) {
-    // TODO 引数を渡されている場合の処理
+    // TODO 引数を渡されている場合の処理。必要になったら実装。
     Element parameterList = document.createElement("parameterList");
     subtoutine.appendChild(parameterList);
   }
@@ -261,11 +261,23 @@ public class CompilationEngine implements AutoCloseable {
     var thirdLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(varDec, thirdLine);
 
-    // TODO symbol「,」で複数の変数が宣言されている場合の処理の実装。
-
-    // symbol「;」の出力
+    // 変数の出力
     var forthLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(varDec, forthLine);
+    while (true) {
+      if (forthLine.get(CONTENT).equals(";")) {
+        // symbol「;」の書き込み
+        appendChildIncludeText(subroutineBody, forthLine);
+        break;
+      } else if (forthLine.get(CONTENT).equals(",")) {
+        appendChildIncludeText(subroutineBody, forthLine);
+
+        var fifthLine = parseXMLLine(this.reader.readLine());
+        appendChildIncludeText(subroutineBody, fifthLine);
+
+        forthLine = parseXMLLine(this.reader.readLine());
+        continue;
+      }
+    }
   }
 
   public void compileDo(Element subroutineBody, Map<String, String> firstLine) throws IOException {
