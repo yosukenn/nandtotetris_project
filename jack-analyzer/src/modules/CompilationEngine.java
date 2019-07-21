@@ -147,11 +147,22 @@ public class CompilationEngine implements AutoCloseable {
     var thirdLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(classVarDec, thirdLine);
 
-    // symbol「;」の書き込み
     var forthLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(classVarDec, forthLine);
+    while (true) {
+      if (forthLine.get(CONTENT).equals(";")) {
+        // symbol「;」の書き込み
+        appendChildIncludeText(classVarDec, forthLine);
+        break;
+      } else if (forthLine.get(CONTENT).equals(",")) {
+        appendChildIncludeText(classVarDec, forthLine);
 
-    // TODO symbol「,」で複数のフィールドが宣言されている場合の処理の実装。
+        var fifthLine = parseXMLLine(this.reader.readLine());
+        appendChildIncludeText(classVarDec, fifthLine);
+
+        forthLine = parseXMLLine(this.reader.readLine());
+        continue;
+      }
+    }
   }
 
   public void compileSubroutine(Element subroutine, Map<String, String> stringMap)
