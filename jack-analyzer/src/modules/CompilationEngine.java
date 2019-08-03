@@ -345,7 +345,15 @@ public class CompilationEngine implements AutoCloseable {
 
     // identifierの出力
     var secondLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(letStatement, secondLine);
+    if (secondLine.get(CONTENT).equals("[")) {
+      appendChildIncludeText(letStatement, secondLine);
+      for (int i = 0; i < 2; i++) {
+        var line = parseXMLLine(this.reader.readLine());
+        appendChildIncludeText(letStatement, line);
+      }
+    } else {
+      appendChildIncludeText(letStatement, secondLine);
+    }
 
     // symbol「=」の出力
     var thirdLine = parseXMLLine(this.reader.readLine());
