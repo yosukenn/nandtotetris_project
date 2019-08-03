@@ -23,6 +23,8 @@ import org.w3c.dom.Element;
 /** 再帰によるトップダウン式の解析器<br> */
 public class CompilationEngine implements AutoCloseable {
 
+  // TODO １つも要素を持たないXML要素を1行でなくて改行して2行で出力したい。
+
   BufferedReader reader;
 
   // XML文書作成例 https://teratail.com/questions/13471
@@ -184,7 +186,6 @@ public class CompilationEngine implements AutoCloseable {
     var forthLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(subroutine, forthLine);
 
-    // TODO 引数を渡されている場合の処理。必要になったら実装。
     compileParameterList(subroutine);
 
     // symbol「)」の書き込み
@@ -218,10 +219,35 @@ public class CompilationEngine implements AutoCloseable {
     appendChildIncludeText(subroutineBody, thirdLine);
   }
 
-  public void compileParameterList(Element subtoutine) {
-    // TODO 引数を渡されている場合の処理。必要になったら実装。
+  public void compileParameterList(Element subroutine) throws IOException {
     Element parameterList = document.createElement("parameterList");
-    subtoutine.appendChild(parameterList);
+    subroutine.appendChild(parameterList);
+
+    this.reader.mark(100);
+    var firstLine = parseXMLLine(this.reader.readLine());
+    if (firstLine.get(ELEMENT_TYPE).equals("keyword")) {
+      while (true) {
+        // keyword(引数の型)をコンパイルする
+        appendChildIncludeText(parameterList, firstLine);
+
+        // identifier(引数の変数名)をコンパイルする
+        var secondLine = parseXMLLine(this.reader.readLine());
+        appendChildIncludeText(parameterList, secondLine);
+
+        // まだ引数があったらコンパイル。なかったらcompileParameterListを終了する。
+        this.reader.mark(100);
+        var thirdLine = parseXMLLine(this.reader.readLine());
+        if (thirdLine.get(CONTENT).equals(",")) {
+          appendChildIncludeText(parameterList, thirdLine);
+          firstLine = parseXMLLine(this.reader.readLine());
+        } else if (thirdLine.get(CONTENT).equals(")")) {
+          this.reader.reset();
+          break;
+        }
+      }
+    } else {
+      this.reader.reset();
+    }
   }
 
   /**
