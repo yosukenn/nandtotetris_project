@@ -439,6 +439,7 @@ public class CompilationEngine implements AutoCloseable {
     appendChildIncludeText(ifStatement, thirdLine);
 
     // symbol"{"のコンパイル
+    appendChildIncludeText(ifStatement, parseXMLLine(this.reader.readLine()));
 
     // statementsのコンパイル
     var forthLine = parseXMLLine(this.reader.readLine());
