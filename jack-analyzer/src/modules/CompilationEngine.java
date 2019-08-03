@@ -336,32 +336,49 @@ public class CompilationEngine implements AutoCloseable {
     // keyword「do」の出力
     appendChildIncludeText(doStatement, firstLine);
 
-    // identifierの出力
+    // identifierの出力 TODO メソッドの実行主体が書かれていない場合の処理(privateメソッド)
     var secondLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(doStatement, secondLine);
 
     // symbol「.」の出力
     var thirdLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(doStatement, thirdLine);
+    if (thirdLine.get(CONTENT).equals(".")) {
+      appendChildIncludeText(doStatement, thirdLine);
 
-    // identifierの出力
-    var forthLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(doStatement, forthLine);
+      // identifierの出力
+      var forthLine = parseXMLLine(this.reader.readLine());
+      appendChildIncludeText(doStatement, forthLine);
 
-    // symbol「(」の出力
-    var fifthLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(doStatement, fifthLine);
+      // symbol「(」の出力
+      var fifthLine = parseXMLLine(this.reader.readLine());
+      appendChildIncludeText(doStatement, fifthLine);
 
-    // TODO expressionListの解析
-    compileExpressionList(doStatement);
+      // TODO expressionListの解析
+      compileExpressionList(doStatement);
 
-    // symbol「)」の出力
-    var sixthLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(doStatement, sixthLine);
+      // symbol「)」の出力
+      var sixthLine = parseXMLLine(this.reader.readLine());
+      appendChildIncludeText(doStatement, sixthLine);
 
-    // symbol「;」の出力
-    var seventhLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(doStatement, seventhLine);
+      // symbol「;」の出力
+      var seventhLine = parseXMLLine(this.reader.readLine());
+      appendChildIncludeText(doStatement, seventhLine);
+    } else if (thirdLine.get(CONTENT).equals("(")) {
+      // メソッドの実行主体が書かれていない場合の処理(privateメソッド)
+
+      appendChildIncludeText(doStatement, thirdLine);
+
+      // TODO expressionListの解析
+      compileExpressionList(doStatement);
+
+      // symbol「)」の出力
+      var forthLine = parseXMLLine(this.reader.readLine());
+      appendChildIncludeText(doStatement, forthLine);
+
+      // symbol「;」の出力
+      var fifthLine = parseXMLLine(this.reader.readLine());
+      appendChildIncludeText(doStatement, fifthLine);
+    }
   }
 
   public void compileLet(Element subroutineBody, Map<String, String> firstLine) throws IOException {
