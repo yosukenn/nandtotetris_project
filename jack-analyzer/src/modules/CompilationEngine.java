@@ -425,14 +425,21 @@ public class CompilationEngine implements AutoCloseable {
     appendChildIncludeText(ifStatement, fifthLine);
   }
 
-  public void compileExpression(Element parent) {
+  public void compileExpression(Element parent) throws IOException {
     Element expression = document.createElement("expression");
     parent.appendChild(expression);
 
     // TODO expressionの解析
+    compileTerm(expression);
   }
 
-  public void compileTerm() {}
+  public void compileTerm(Element parent) throws IOException {
+    Element term = document.createElement("term");
+    parent.appendChild(term);
+
+    var firstLine = parseXMLLine(this.reader.readLine());
+    appendChildIncludeText(term, firstLine);
+  }
 
   public void compileExpressionList(Element subroutineBody) {
     Element expressionList = document.createElement("expressionList");
