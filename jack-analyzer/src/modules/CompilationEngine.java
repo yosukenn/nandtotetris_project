@@ -266,13 +266,13 @@ public class CompilationEngine implements AutoCloseable {
     while (true) {
       if (forthLine.get(CONTENT).equals(";")) {
         // symbol「;」の書き込み
-        appendChildIncludeText(subroutineBody, forthLine);
+        appendChildIncludeText(varDec, forthLine);
         break;
       } else if (forthLine.get(CONTENT).equals(",")) {
-        appendChildIncludeText(subroutineBody, forthLine);
+        appendChildIncludeText(varDec, forthLine);
 
         var fifthLine = parseXMLLine(this.reader.readLine());
-        appendChildIncludeText(subroutineBody, fifthLine);
+        appendChildIncludeText(varDec, fifthLine);
 
         forthLine = parseXMLLine(this.reader.readLine());
         continue;

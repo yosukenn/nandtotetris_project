@@ -5,7 +5,6 @@ import java.io.IOException;
 import javax.xml.stream.XMLStreamException;
 import modules.CompilationEngine;
 import modules.JackTokenizer;
-import modules.data.Keyword;
 
 /**
  * セットアップや他モジュールの呼び出しを行うモジュール<br>
