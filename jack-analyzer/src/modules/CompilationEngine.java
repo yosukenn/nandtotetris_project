@@ -109,9 +109,11 @@ public class CompilationEngine implements AutoCloseable {
       }
       break;
     }
-    // 最後にsymbol"}"を出力
-    var fifthLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(klass, fifthLine);
+    // 最後にsymbol"}"を出力 TODO 過剰に読み取っていて"}"を出力できていないので、一旦無理やり出力している。
+    //    var fifthLine = parseXMLLine(this.reader.readLine());
+    //    appendChildIncludeText(klass, fifthLine);
+    appendChildIncludeText(
+        klass, Map.of(ELEMENT_TYPE, "symbol", CONTENT, "}", ENCLOSED_CONTENT, " } "));
   }
 
   private Map<String, String> parseXMLLine(String line) {
@@ -189,7 +191,7 @@ public class CompilationEngine implements AutoCloseable {
     var fifthLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(subroutine, fifthLine);
 
-    // 「{ statements」}」の書き込み
+    // 「{ statements }」の書き込み
     compileSubroutineBody(subroutine);
   }
 
@@ -255,9 +257,6 @@ public class CompilationEngine implements AutoCloseable {
           compileIf(statements, line);
           break;
       }
-      //      if (returnFlg == 1) {
-      //        break;
-      //      }
       var readLine = this.reader.readLine();
       if (readLine == null) {
         break;
@@ -266,7 +265,6 @@ public class CompilationEngine implements AutoCloseable {
       if (line.get(CONTENT).equals("}")) {
         break;
       }
-      // TODO expressionの解析
     }
   }
 
