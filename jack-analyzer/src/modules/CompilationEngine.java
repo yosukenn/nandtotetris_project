@@ -202,15 +202,12 @@ public class CompilationEngine implements AutoCloseable {
     appendChildIncludeText(subroutineBody, firstLine);
 
     while (true) {
-      var readLine = this.reader.readLine();
-      if (readLine == null) {
-        break;
-      }
-      var secondLine = parseXMLLine(readLine);
+      var secondLine = parseXMLLine(this.reader.readLine());
       if (secondLine.get(CONTENT).equals("var")) {
         compileVarDec(subroutineBody, secondLine);
       } else {
         compileStatements(subroutineBody, secondLine);
+        break;
       }
     }
 
@@ -258,8 +255,11 @@ public class CompilationEngine implements AutoCloseable {
           compileIf(statements, line);
           break;
       }
+      if (returnFlg == 1) {
+        break;
+      }
       var readLine = this.reader.readLine();
-      if (readLine == null || returnFlg == 1) {
+      if (readLine == null) {
         break;
       }
       line = parseXMLLine(readLine);
