@@ -451,6 +451,25 @@ public class CompilationEngine implements AutoCloseable {
     // symbol"}"のコンパイル
     var fifthLine = Map.of(ELEMENT_TYPE, "symbol", CONTENT, "}", ENCLOSED_CONTENT, " } ");
     appendChildIncludeText(ifStatement, fifthLine);
+
+    this.reader.mark(100); // 取り消せるようにマーク
+    var sixthLine = parseXMLLine(this.reader.readLine());
+    if (sixthLine.get(CONTENT).equals("else")) {
+      // keyword"else"のコンパイル
+      appendChildIncludeText(ifStatement, sixthLine);
+
+      // symbol"{"のコンパイル
+      appendChildIncludeText(ifStatement, parseXMLLine(this.reader.readLine()));
+
+      // statementsのコンパイル
+      compileStatements(ifStatement, parseXMLLine(this.reader.readLine()));
+
+      // symbol"}"のコンパイル
+      var seventhLine = Map.of(ELEMENT_TYPE, "symbol", CONTENT, "}", ENCLOSED_CONTENT, " } ");
+      appendChildIncludeText(ifStatement, seventhLine);
+    } else {
+      this.reader.reset(); // TODO 読み込んだ結果"else"がないIf文だった場合、ちゃんと読み込みを取り消せられているか確認。
+    }
   }
 
   public void compileExpression(Element parent) throws IOException {
@@ -458,6 +477,17 @@ public class CompilationEngine implements AutoCloseable {
     parent.appendChild(expression);
 
     compileTerm(expression);
+
+    this.reader.mark(100);
+    var nextEle = parseXMLLine(this.reader.readLine());
+    if (nextEle.get(CONTENT).equals("|")) {
+      appendChildIncludeText(expression, nextEle);
+      compileTerm(expression);
+    } else {
+      this.reader.reset();
+    }
+
+    // TODO "|"が複数回出てくる場合が出てきたら対応を追加する。
   }
 
   public void compileTerm(Element parent) throws IOException {
