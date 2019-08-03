@@ -236,27 +236,30 @@ public class CompilationEngine implements AutoCloseable {
     Element statements = document.createElement("statements");
     subroutineBody.appendChild(statements);
 
+    int returnFlg = 0;
+
     var line = firstLine;
     while (true) {
       switch (line.get(CONTENT)) {
         case "do":
           compileDo(statements, line);
-          continue;
+          break;
         case "let":
           compileLet(statements, line);
-          continue;
+          break;
         case "while":
           compileWhile(statements, line);
-          continue;
+          break;
         case "return":
           compileReturn(statements, line);
-          continue;
+          returnFlg = 1;
+          break;
         case "if":
           compileIf(statements, line);
-          continue;
+          break;
       }
       var readLine = this.reader.readLine();
-      if (readLine == null) {
+      if (readLine == null || returnFlg == 1) {
         break;
       }
       line = parseXMLLine(readLine);
@@ -382,25 +385,22 @@ public class CompilationEngine implements AutoCloseable {
     appendChildIncludeText(whileStatement, sixthLine);
   }
 
-  public void compileReturn(Element subroutineBody, Map<String, String> firstLine)
-      throws IOException {
+  public void compileReturn(Element parent, Map<String, String> firstLine) throws IOException {
     Element returnStatement = document.createElement("returnStatement");
-    subroutineBody.appendChild(returnStatement);
+    parent.appendChild(returnStatement);
 
+    // identifier"return"のコンパイル
     appendChildIncludeText(returnStatement, firstLine);
 
     var secondLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(returnStatement, secondLine);
-
-    var thirdLine = parseXMLLine(this.reader.readLine());
-    if (thirdLine.get(ELEMENT_TYPE).equals("identifier")) {
+    if (secondLine.get(ELEMENT_TYPE).equals("identifier")) {
       compileExpression(returnStatement);
 
       var forthLine = parseXMLLine(this.reader.readLine());
       appendChildIncludeText(returnStatement, forthLine);
 
-    } else if (thirdLine.get(ELEMENT_TYPE).equals("symbol")) {
-      appendChildIncludeText(returnStatement, thirdLine);
+    } else if (secondLine.get(ELEMENT_TYPE).equals("symbol")) {
+      appendChildIncludeText(returnStatement, secondLine);
     }
   }
 
@@ -429,7 +429,6 @@ public class CompilationEngine implements AutoCloseable {
     Element expression = document.createElement("expression");
     parent.appendChild(expression);
 
-    // TODO expressionの解析
     compileTerm(expression);
   }
 
