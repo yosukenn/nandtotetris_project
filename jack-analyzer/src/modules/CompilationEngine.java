@@ -212,7 +212,7 @@ public class CompilationEngine implements AutoCloseable {
     }
 
     // symbol「}」の書き込み
-    var thirdLine = parseXMLLine(this.reader.readLine());
+    var thirdLine = Map.of(ELEMENT_TYPE, "symbol", CONTENT, "}", ENCLOSED_CONTENT, " } ");
     appendChildIncludeText(subroutineBody, thirdLine);
   }
 
@@ -255,14 +255,17 @@ public class CompilationEngine implements AutoCloseable {
           compileIf(statements, line);
           break;
       }
-      if (returnFlg == 1) {
-        break;
-      }
+      //      if (returnFlg == 1) {
+      //        break;
+      //      }
       var readLine = this.reader.readLine();
       if (readLine == null) {
         break;
       }
       line = parseXMLLine(readLine);
+      if (line.get(CONTENT).equals("}")) {
+        break;
+      }
       // TODO expressionの解析
     }
   }
@@ -445,7 +448,8 @@ public class CompilationEngine implements AutoCloseable {
     var forthLine = parseXMLLine(this.reader.readLine());
     compileStatements(ifStatement, forthLine);
 
-    var fifthLine = parseXMLLine(this.reader.readLine());
+    // symbol"}"のコンパイル
+    var fifthLine = Map.of(ELEMENT_TYPE, "symbol", CONTENT, "}", ENCLOSED_CONTENT, " } ");
     appendChildIncludeText(ifStatement, fifthLine);
   }
 
