@@ -341,23 +341,31 @@ public class CompilationEngine implements AutoCloseable {
     Element letStatement = document.createElement("letStatement");
     subroutineBody.appendChild(letStatement);
 
+    // keyword"let"のコンパイル
     appendChildIncludeText(letStatement, firstLine);
 
     // identifierの出力
     var secondLine = parseXMLLine(this.reader.readLine());
-    if (secondLine.get(CONTENT).equals("[")) {
-      appendChildIncludeText(letStatement, secondLine);
-      for (int i = 0; i < 2; i++) {
-        var line = parseXMLLine(this.reader.readLine());
-        appendChildIncludeText(letStatement, line);
-      }
-    } else {
-      appendChildIncludeText(letStatement, secondLine);
-    }
+    appendChildIncludeText(letStatement, secondLine);
 
-    // symbol「=」の出力
     var thirdLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(letStatement, thirdLine);
+    if (thirdLine.get(CONTENT).equals("[")) {
+      // symbol"["のコンパイル
+      appendChildIncludeText(letStatement, thirdLine);
+
+      // 配列イテレータのコンパイル
+      compileExpression(letStatement);
+
+      // symbol「]」のコンパイル
+      appendChildIncludeText(letStatement, parseXMLLine(this.reader.readLine()));
+
+      // symbol「=」のコンパイル
+      appendChildIncludeText(letStatement, parseXMLLine(this.reader.readLine()));
+
+    } else {
+      // symbol「=」の出力
+      appendChildIncludeText(letStatement, thirdLine);
+    }
 
     // TODO expressionの解析
     compileExpression(letStatement);
@@ -416,16 +424,23 @@ public class CompilationEngine implements AutoCloseable {
     Element ifStatement = document.createElement("ifStatement");
     parent.appendChild(ifStatement);
 
+    // keyword"if"のコンパイル
     appendChildIncludeText(ifStatement, firstLine);
 
+    // symbol"("のコンパイル
     var secondLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(ifStatement, secondLine);
 
+    // if条件式のコンパイル
     compileExpression(ifStatement);
 
+    // symbol")"のコンパイル
     var thirdLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(ifStatement, thirdLine);
 
+    // symbol"{"のコンパイル
+
+    // statementsのコンパイル
     var forthLine = parseXMLLine(this.reader.readLine());
     compileStatements(ifStatement, forthLine);
 
