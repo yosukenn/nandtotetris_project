@@ -201,11 +201,22 @@ public class CompilationEngine implements AutoCloseable {
     var firstLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(subroutineBody, firstLine);
 
-    compileStatements(subroutineBody);
+    while (true) {
+      var readLine = this.reader.readLine();
+      if (readLine == null) {
+        break;
+      }
+      var secondLine = parseXMLLine(readLine);
+      if (secondLine.get(CONTENT).equals("var")) {
+        compileVarDec(subroutineBody, secondLine);
+      } else {
+        compileStatements(subroutineBody, secondLine);
+      }
+    }
 
     // symbol「}」の書き込み
-    var secondLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(subroutineBody, secondLine);
+    var thirdLine = parseXMLLine(this.reader.readLine());
+    appendChildIncludeText(subroutineBody, thirdLine);
   }
 
   public void compileParameterList(Element subtoutine) {
@@ -214,33 +225,41 @@ public class CompilationEngine implements AutoCloseable {
     subtoutine.appendChild(parameterList);
   }
 
-  public void compileStatements(Element subroutineBody) throws IOException {
+  /**
+   * var宣言は含まない。
+   *
+   * @param subroutineBody
+   * @throws IOException
+   */
+  public void compileStatements(Element subroutineBody, Map<String, String> firstLine)
+      throws IOException {
+    Element statements = document.createElement("statements");
+    subroutineBody.appendChild(statements);
+
+    var line = firstLine;
     while (true) {
+      switch (line.get(CONTENT)) {
+        case "do":
+          compileDo(statements, line);
+          continue;
+        case "let":
+          compileLet(statements, line);
+          continue;
+        case "while":
+          compileWhile(statements, line);
+          continue;
+        case "return":
+          compileReturn(statements, line);
+          continue;
+        case "if":
+          compileIf(statements, line);
+          continue;
+      }
       var readLine = this.reader.readLine();
       if (readLine == null) {
         break;
       }
-      var firstLine = parseXMLLine(readLine);
-      switch (firstLine.get(CONTENT)) {
-        case "var":
-          compileVarDec(subroutineBody, firstLine);
-          continue;
-        case "do":
-          compileDo(subroutineBody, firstLine);
-          continue;
-        case "let":
-          compileLet(subroutineBody, firstLine);
-          continue;
-        case "while":
-          compileWhile(subroutineBody, firstLine);
-          continue;
-        case "return":
-          compileReturn(subroutineBody, firstLine);
-          continue;
-        case "if":
-          compileIf(subroutineBody, firstLine);
-          continue;
-      }
+      line = parseXMLLine(readLine);
       // TODO expressionの解析
     }
   }
@@ -355,7 +374,8 @@ public class CompilationEngine implements AutoCloseable {
     var forthLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(whileStatement, forthLine);
 
-    compileStatements(whileStatement);
+    var fifthLine = parseXMLLine(this.reader.readLine());
+    compileStatements(whileStatement, fifthLine);
 
     // symbol「}」の書き込み
     var sixthLine = parseXMLLine(this.reader.readLine());
@@ -398,10 +418,11 @@ public class CompilationEngine implements AutoCloseable {
     var thirdLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(ifStatement, thirdLine);
 
-    compileStatements(ifStatement);
-
     var forthLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(ifStatement, forthLine);
+    compileStatements(ifStatement, forthLine);
+
+    var fifthLine = parseXMLLine(this.reader.readLine());
+    appendChildIncludeText(ifStatement, fifthLine);
   }
 
   public void compileExpression(Element parent) {
