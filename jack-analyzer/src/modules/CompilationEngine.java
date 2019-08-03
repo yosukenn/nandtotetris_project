@@ -452,8 +452,10 @@ public class CompilationEngine implements AutoCloseable {
     // identifier"return"のコンパイル
     appendChildIncludeText(returnStatement, firstLine);
 
+    this.reader.mark(100);
     var secondLine = parseXMLLine(this.reader.readLine());
     if (secondLine.get(ELEMENT_TYPE).equals("identifier")) {
+      this.reader.reset();
       compileExpression(returnStatement);
 
       var forthLine = parseXMLLine(this.reader.readLine());
