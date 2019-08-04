@@ -584,7 +584,7 @@ public class CompilationEngine implements AutoCloseable {
       var secondLine = parseXMLLine(this.reader.readLine());
       appendChildIncludeText(term, secondLine);
 
-    } else if (firstLine.get(CONTENT).equals("-")) {
+    } else if (firstLine.get(CONTENT).equals("-") || firstLine.get(CONTENT).equals("~")) {
       // 符号付き変数のコンパイル
       compileTerm(term);
 
