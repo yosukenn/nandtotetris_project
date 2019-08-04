@@ -526,7 +526,10 @@ public class CompilationEngine implements AutoCloseable {
 
     this.reader.mark(100);
     var nextEle = parseXMLLine(this.reader.readLine());
-    if (nextEle.get(CONTENT).equals("|")) {
+    if (nextEle.get(CONTENT).equals("|")
+        || nextEle.get(CONTENT).equals("*")
+        || nextEle.get(CONTENT).equals("/")) {
+      // TODO "|", "*", "/"が複数回出てくる場合が出てきたら対応を追加する。
       // 複数の変数を代入する場合の場合
       appendChildIncludeText(expression, nextEle);
       compileTerm(expression);
@@ -534,8 +537,6 @@ public class CompilationEngine implements AutoCloseable {
     } else {
       this.reader.reset();
     }
-
-    // TODO "|"が複数回出てくる場合が出てきたら対応を追加する。
   }
 
   public void compileTerm(Element parent) throws IOException {
@@ -545,17 +546,33 @@ public class CompilationEngine implements AutoCloseable {
     var firstLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(term, firstLine);
 
-    this.reader.mark(100);
-    var secondLine = parseXMLLine(this.reader.readLine());
-    if (secondLine.get(CONTENT).equals(".")) {
-      // サブルーチン呼び出し
-      compileCallSubroutine(term, secondLine);
-    } else if (secondLine.get(CONTENT).equals("[")) {
-      // 配列宣言のコンパイル
-      compileArrayIterator(term, secondLine);
+    if (firstLine.get(CONTENT).equals("(")) {
+      // "( sign variable)" をコンパイルする。
+
+      // "sign variable"
+      compileExpression(term);
+
+      // ")"
+      var secondLine = parseXMLLine(this.reader.readLine());
+      appendChildIncludeText(term, secondLine);
+
+    } else if (firstLine.get(CONTENT).equals("-")) {
+      // 符号付き変数のコンパイル
+      compileTerm(term);
 
     } else {
-      this.reader.reset();
+      this.reader.mark(100);
+      var secondLine = parseXMLLine(this.reader.readLine());
+      if (secondLine.get(CONTENT).equals(".")) {
+        // サブルーチン呼び出し
+        compileCallSubroutine(term, secondLine);
+      } else if (secondLine.get(CONTENT).equals("[")) {
+        // 配列宣言のコンパイル
+        compileArrayIterator(term, secondLine);
+
+      } else {
+        this.reader.reset();
+      }
     }
   }
 
