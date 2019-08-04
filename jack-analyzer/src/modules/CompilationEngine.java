@@ -614,6 +614,7 @@ public class CompilationEngine implements AutoCloseable {
       if (line.get(ELEMENT_TYPE).equals("keyword")
           || line.get(ELEMENT_TYPE).equals("identifier")
           || line.get(ELEMENT_TYPE).equals("integerConstant")
+          || line.get(ELEMENT_TYPE).equals("stringConstant")
           || line.get(CONTENT).equals("(")) {
         this.reader.reset();
         compileExpression(expressionList);
