@@ -531,7 +531,8 @@ public class CompilationEngine implements AutoCloseable {
         || nextEle.get(CONTENT).equals("*")
         || nextEle.get(CONTENT).equals("/")
         || nextEle.get(CONTENT).equals("+")
-        || nextEle.get(CONTENT).equals("-")) {
+        || nextEle.get(CONTENT).equals("-")
+        || nextEle.get(CONTENT).equals("=")) {
       // TODO "|", "*", "/", "+"が複数回出てくる場合が出てきたら対応を追加する。
       // 複数の変数を代入する場合の場合
       appendChildIncludeText(expression, nextEle);
@@ -612,6 +613,7 @@ public class CompilationEngine implements AutoCloseable {
       var line = parseXMLLine(this.reader.readLine());
       if (line.get(ELEMENT_TYPE).equals("keyword")
           || line.get(ELEMENT_TYPE).equals("identifier")
+          || line.get(ELEMENT_TYPE).equals("integerConstant")
           || line.get(CONTENT).equals("(")) {
         this.reader.reset();
         compileExpression(expressionList);
