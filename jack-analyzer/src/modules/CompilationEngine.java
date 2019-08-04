@@ -545,13 +545,18 @@ public class CompilationEngine implements AutoCloseable {
     Element expressionList = document.createElement("expressionList");
     subroutineBody.appendChild(expressionList);
 
-    this.reader.mark(100);
-    var line = parseXMLLine(this.reader.readLine());
-    if (line.get(ELEMENT_TYPE).equals("keyword") || line.get(ELEMENT_TYPE).equals("identifier")) {
-      this.reader.reset();
-      compileExpression(expressionList);
-    } else {
-      this.reader.reset();
+    while (true) {
+      this.reader.mark(100);
+      var line = parseXMLLine(this.reader.readLine());
+      if (line.get(ELEMENT_TYPE).equals("keyword") || line.get(ELEMENT_TYPE).equals("identifier")) {
+        this.reader.reset();
+        compileExpression(expressionList);
+      } else if (line.get(CONTENT).equals(",")) {
+        appendChildIncludeText(expressionList, line);
+      } else {
+        this.reader.reset();
+        break;
+      }
     }
 
     // TODO 実引数が複数ある時の処理
