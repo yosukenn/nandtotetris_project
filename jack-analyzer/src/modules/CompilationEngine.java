@@ -530,12 +530,37 @@ public class CompilationEngine implements AutoCloseable {
     if (nextEle.get(CONTENT).equals("|")
         || nextEle.get(CONTENT).equals("*")
         || nextEle.get(CONTENT).equals("/")
-        || nextEle.get(CONTENT).equals("+")) {
-      // TODO "|", "*", "/"が複数回出てくる場合が出てきたら対応を追加する。
+        || nextEle.get(CONTENT).equals("+")
+        || nextEle.get(CONTENT).equals("-")) {
+      // TODO "|", "*", "/", "+"が複数回出てくる場合が出てきたら対応を追加する。
       // 複数の変数を代入する場合の場合
       appendChildIncludeText(expression, nextEle);
       compileTerm(expression);
 
+    } else {
+      this.reader.reset();
+    }
+
+    this.reader.mark(100);
+    var secondLine = parseXMLLine(this.reader.readLine());
+    if (secondLine.get(CONTENT).equals("&lt;")) {
+      appendChildIncludeText(
+          expression, Map.of(ELEMENT_TYPE, "symbol", CONTENT, "<", ENCLOSED_CONTENT, " < "));
+      compileTerm(expression);
+    } else if (secondLine.get(CONTENT).equals("&gt;")) {
+      appendChildIncludeText(
+          expression, Map.of(ELEMENT_TYPE, "symbol", CONTENT, ">", ENCLOSED_CONTENT, " > "));
+      compileTerm(expression);
+    } else {
+      this.reader.reset();
+    }
+
+    this.reader.mark(100);
+    var thirdLine = parseXMLLine(this.reader.readLine());
+    if (thirdLine.get(CONTENT).equals("&amp;")) { // TODO "&"が複数出てくるパターン対策。
+      appendChildIncludeText(
+          expression, Map.of(ELEMENT_TYPE, "symbol", CONTENT, "&", ENCLOSED_CONTENT, " & "));
+      compileTerm(expression);
     } else {
       this.reader.reset();
     }
