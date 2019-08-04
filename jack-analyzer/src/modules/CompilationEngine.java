@@ -290,6 +290,7 @@ public class CompilationEngine implements AutoCloseable {
       line = parseXMLLine(readLine);
       if (line.get(CONTENT).equals("}")) {
         break;
+        // TODO resetしないといけないかも
       }
     }
   }
@@ -440,9 +441,12 @@ public class CompilationEngine implements AutoCloseable {
     var fifthLine = parseXMLLine(this.reader.readLine());
     compileStatements(whileStatement, fifthLine);
 
+    // TODO compileStatements()で行を読み込み過ぎているのを修正する必要があるが、これを修正すると崩壊するので無理やり"}"をコンパイルするようにしている。
     // symbol「}」の書き込み
-    var sixthLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(whileStatement, sixthLine);
+    //    var sixthLine = parseXMLLine(this.reader.readLine());
+    //    appendChildIncludeText(whileStatement, sixthLine);
+    var closeSymbolLine = Map.of(ELEMENT_TYPE, "symbol", CONTENT, "}", ENCLOSED_CONTENT, " } ");
+    appendChildIncludeText(whileStatement, closeSymbolLine);
   }
 
   public void compileReturn(Element parent, Map<String, String> firstLine) throws IOException {
