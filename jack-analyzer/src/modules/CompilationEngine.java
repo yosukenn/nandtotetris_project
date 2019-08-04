@@ -541,11 +541,20 @@ public class CompilationEngine implements AutoCloseable {
     appendChildIncludeText(term, firstLine);
   }
 
-  public void compileExpressionList(Element subroutineBody) {
+  public void compileExpressionList(Element subroutineBody) throws IOException {
     Element expressionList = document.createElement("expressionList");
     subroutineBody.appendChild(expressionList);
 
-    // TODO expressionListの解析
+    this.reader.mark(100);
+    var line = parseXMLLine(this.reader.readLine());
+    if (line.get(ELEMENT_TYPE).equals("keyword") || line.get(ELEMENT_TYPE).equals("identifier")) {
+      this.reader.reset();
+      compileExpression(expressionList);
+    } else {
+      this.reader.reset();
+    }
+
+    // TODO 実引数が複数ある時の処理
   }
 
   private static boolean createXMLFile(File file, Document document) {
