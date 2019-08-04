@@ -610,7 +610,9 @@ public class CompilationEngine implements AutoCloseable {
     while (true) {
       this.reader.mark(100);
       var line = parseXMLLine(this.reader.readLine());
-      if (line.get(ELEMENT_TYPE).equals("keyword") || line.get(ELEMENT_TYPE).equals("identifier")) {
+      if (line.get(ELEMENT_TYPE).equals("keyword")
+          || line.get(ELEMENT_TYPE).equals("identifier")
+          || line.get(CONTENT).equals("(")) {
         this.reader.reset();
         compileExpression(expressionList);
       } else if (line.get(CONTENT).equals(",")) {
