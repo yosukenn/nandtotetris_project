@@ -401,14 +401,8 @@ public class CompilationEngine implements AutoCloseable {
 
     var thirdLine = parseXMLLine(this.reader.readLine());
     if (thirdLine.get(CONTENT).equals("[")) {
-      // symbol"["のコンパイル
-      appendChildIncludeText(letStatement, thirdLine);
-
-      // 配列イテレータのコンパイル
-      compileExpression(letStatement);
-
-      // symbol「]」のコンパイル
-      appendChildIncludeText(letStatement, parseXMLLine(this.reader.readLine()));
+      // 配列宣言"[ iterator ]"部分のコンパイル
+      compileArrayIterator(letStatement, thirdLine);
 
       // symbol「=」のコンパイル
       appendChildIncludeText(letStatement, parseXMLLine(this.reader.readLine()));
@@ -556,11 +550,13 @@ public class CompilationEngine implements AutoCloseable {
     if (secondLine.get(CONTENT).equals(".")) {
       // サブルーチン呼び出し
       compileCallSubroutine(term, secondLine);
+    } else if (secondLine.get(CONTENT).equals("[")) {
+      // 配列宣言のコンパイル
+      compileArrayIterator(term, secondLine);
+
     } else {
       this.reader.reset();
     }
-
-    // TODO 配列宣言のコンパイル
   }
 
   public void compileExpressionList(Element subroutineBody) throws IOException {
@@ -613,12 +609,6 @@ public class CompilationEngine implements AutoCloseable {
     return true;
   }
 
-  private void appendChildIncludeText(Element parent, Map<String, String> stringLine) {
-    Element element = document.createElement(stringLine.get(ELEMENT_TYPE));
-    parent.appendChild(element);
-    element.appendChild(document.createTextNode(stringLine.get(ENCLOSED_CONTENT)));
-  }
-
   /** サーブルーチン呼び出しの内、".( arguments... )"部分のコンパイルを行う。 */
   private void compileCallSubroutine(Element parent, Map<String, String> firstLine)
       throws IOException {
@@ -638,5 +628,37 @@ public class CompilationEngine implements AutoCloseable {
     // symbol「)」の出力
     var sixthLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(parent, sixthLine);
+  }
+
+  /*
+       // 配列宣言"[ iterator ]"部分のコンパイル
+     compileArrayIterator(letStatement, thirdLine)
+
+     // symbol"["のコンパイル
+     appendChildIncludeText(letStatement, thirdLine);
+
+     // 配列イテレータのコンパイル
+     compileExpression(letStatement);
+
+     // symbol「]」のコンパイル
+     appendChildIncludeText(letStatement, parseXMLLine(this.reader.readLine()));
+  */
+
+  private void compileArrayIterator(Element parent, Map<String, String> firstLine)
+      throws IOException {
+    // symbol"["のコンパイル
+    appendChildIncludeText(parent, firstLine);
+
+    // 配列イテレータのコンパイル
+    compileExpression(parent);
+
+    // symbol「]」のコンパイル
+    appendChildIncludeText(parent, parseXMLLine(this.reader.readLine()));
+  }
+
+  private void appendChildIncludeText(Element parent, Map<String, String> stringLine) {
+    Element element = document.createElement(stringLine.get(ELEMENT_TYPE));
+    parent.appendChild(element);
+    element.appendChild(document.createTextNode(stringLine.get(ENCLOSED_CONTENT)));
   }
 }
