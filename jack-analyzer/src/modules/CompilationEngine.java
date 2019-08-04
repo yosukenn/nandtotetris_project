@@ -139,16 +139,16 @@ public class CompilationEngine implements AutoCloseable {
     if (map.get(ELEMENT_TYPE) == null
         && map.get(CONTENT) == null
         && map.get(ENCLOSED_CONTENT) == null) {
-      String stringConstRegex = "(<\\w+>) (\\S+\\s+\\S+) (</\\w+>)";
-      Pattern pStringConst = Pattern.compile(stringConstRegex);
-      Matcher mStringConst = pStringConst.matcher(line);
-
-      if (mStringConst.find()) {
-        map.put(
-            ELEMENT_TYPE, mStringConst.group(1).substring(1, mStringConst.group(1).length() - 1));
-        map.put(CONTENT, mStringConst.group(2));
-        map.put(ENCLOSED_CONTENT, encloseBySpace(mStringConst.group(2)));
+      String[] strings = line.split(" ");
+      map.put(ELEMENT_TYPE, strings[0].substring(1, strings[0].length() - 1));
+      StringBuilder stringBuilder = new StringBuilder();
+      stringBuilder.append(strings[1]);
+      for (int i = 2; i < strings.length - 1; i++) {
+        stringBuilder.append(" ");
+        stringBuilder.append(strings[i]);
       }
+      map.put(CONTENT, stringBuilder.toString());
+      map.put(ENCLOSED_CONTENT, " " + stringBuilder.toString() + " ");
     }
 
     return map;
