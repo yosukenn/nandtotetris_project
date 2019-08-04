@@ -20,6 +20,11 @@ import javax.xml.transform.stream.StreamResult;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
+/*
+修正できる点（多分やらないけど）
+ - compileXX 内でwhilu文で繰り返し処理をしなくても、再帰的にメソッドを呼び出せばもっとシンプルにかける。
+ */
+
 /** 再帰によるトップダウン式の解析器<br> */
 public class CompilationEngine implements AutoCloseable {
 
@@ -341,35 +346,20 @@ public class CompilationEngine implements AutoCloseable {
     var secondLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(doStatement, secondLine);
 
-    // symbol「.」の出力
     var thirdLine = parseXMLLine(this.reader.readLine());
     if (thirdLine.get(CONTENT).equals(".")) {
-      appendChildIncludeText(doStatement, thirdLine);
+      // ".()"のコンパイル
+      compileCallSubroutine(doStatement, thirdLine);
 
-      // identifierの出力
+      // symbol";"の出力
       var forthLine = parseXMLLine(this.reader.readLine());
       appendChildIncludeText(doStatement, forthLine);
 
-      // symbol「(」の出力
-      var fifthLine = parseXMLLine(this.reader.readLine());
-      appendChildIncludeText(doStatement, fifthLine);
-
-      // TODO expressionListの解析
-      compileExpressionList(doStatement);
-
-      // symbol「)」の出力
-      var sixthLine = parseXMLLine(this.reader.readLine());
-      appendChildIncludeText(doStatement, sixthLine);
-
-      // symbol「;」の出力
-      var seventhLine = parseXMLLine(this.reader.readLine());
-      appendChildIncludeText(doStatement, seventhLine);
     } else if (thirdLine.get(CONTENT).equals("(")) {
       // メソッドの実行主体が書かれていない場合の処理(privateメソッド)
 
       appendChildIncludeText(doStatement, thirdLine);
 
-      // TODO expressionListの解析
       compileExpressionList(doStatement);
 
       // symbol「)」の出力
@@ -412,7 +402,6 @@ public class CompilationEngine implements AutoCloseable {
       appendChildIncludeText(letStatement, thirdLine);
     }
 
-    // TODO expressionの解析
     compileExpression(letStatement);
 
     // symbol「;」の出力
@@ -528,8 +517,10 @@ public class CompilationEngine implements AutoCloseable {
     this.reader.mark(100);
     var nextEle = parseXMLLine(this.reader.readLine());
     if (nextEle.get(CONTENT).equals("|")) {
+      // 複数の変数を代入する場合の場合
       appendChildIncludeText(expression, nextEle);
       compileTerm(expression);
+
     } else {
       this.reader.reset();
     }
@@ -543,6 +534,17 @@ public class CompilationEngine implements AutoCloseable {
 
     var firstLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(term, firstLine);
+
+    this.reader.mark(100);
+    var secondLine = parseXMLLine(this.reader.readLine());
+    if (secondLine.get(CONTENT).equals(".")) {
+      // サブルーチン呼び出し
+      compileCallSubroutine(term, secondLine);
+    } else {
+      this.reader.reset();
+    }
+
+    // TODO 配列宣言のコンパイル
   }
 
   public void compileExpressionList(Element subroutineBody) throws IOException {
@@ -599,5 +601,26 @@ public class CompilationEngine implements AutoCloseable {
     Element element = document.createElement(stringLine.get(ELEMENT_TYPE));
     parent.appendChild(element);
     element.appendChild(document.createTextNode(stringLine.get(ENCLOSED_CONTENT)));
+  }
+
+  /** サーブルーチン呼び出しの内、".( arguments... )"部分のコンパイルを行う。 */
+  private void compileCallSubroutine(Element parent, Map<String, String> firstLine)
+      throws IOException {
+    // symbol「.」の出力
+    appendChildIncludeText(parent, firstLine);
+
+    // identifierの出力
+    var secondLine = parseXMLLine(this.reader.readLine());
+    appendChildIncludeText(parent, secondLine);
+
+    // symbol「(」の出力
+    var thirdLine = parseXMLLine(this.reader.readLine());
+    appendChildIncludeText(parent, thirdLine);
+
+    compileExpressionList(parent);
+
+    // symbol「)」の出力
+    var sixthLine = parseXMLLine(this.reader.readLine());
+    appendChildIncludeText(parent, sixthLine);
   }
 }
