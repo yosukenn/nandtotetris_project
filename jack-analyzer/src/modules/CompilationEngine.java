@@ -457,7 +457,8 @@ public class CompilationEngine implements AutoCloseable {
 
     this.reader.mark(100);
     var secondLine = parseXMLLine(this.reader.readLine());
-    if (secondLine.get(ELEMENT_TYPE).equals("identifier")) {
+    if (secondLine.get(ELEMENT_TYPE).equals("identifier")
+        || secondLine.get(ELEMENT_TYPE).equals("keyword")) {
       this.reader.reset();
       compileExpression(returnStatement);
 
@@ -528,7 +529,8 @@ public class CompilationEngine implements AutoCloseable {
     var nextEle = parseXMLLine(this.reader.readLine());
     if (nextEle.get(CONTENT).equals("|")
         || nextEle.get(CONTENT).equals("*")
-        || nextEle.get(CONTENT).equals("/")) {
+        || nextEle.get(CONTENT).equals("/")
+        || nextEle.get(CONTENT).equals("+")) {
       // TODO "|", "*", "/"が複数回出てくる場合が出てきたら対応を追加する。
       // 複数の変数を代入する場合の場合
       appendChildIncludeText(expression, nextEle);
