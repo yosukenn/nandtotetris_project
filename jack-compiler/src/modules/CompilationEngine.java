@@ -17,6 +17,7 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import modules.data.IdentifierAttr;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -27,8 +28,6 @@ TODO 修正できる点（多分やらないけど）
 
 /** 再帰によるトップダウン式の解析器<br> */
 public class CompilationEngine implements AutoCloseable {
-
-  // TODO １つも要素を持たないXML要素を1行でなくて改行して2行で出力したい。
 
   BufferedReader reader;
 
@@ -41,6 +40,12 @@ public class CompilationEngine implements AutoCloseable {
   private static final String ELEMENT_TYPE = "elementType";
   private static final String CONTENT = "content";
   private static final String ENCLOSED_CONTENT = "enclosed_content";
+
+  private static final String STATIC_KEYWORD = "static";
+  private static final String FIELD_KEYWORD = "field";
+  private static final String FUNCTION_KEYWORD = "function";
+  private static final String CONSTRUCTOR_KEYWORD = "constructor";
+  private static final String METHOD_KEYWORD = "method";
 
   public CompilationEngine(String inputFile, String outputFile) throws IOException {
     this.reader = new BufferedReader(new FileReader(inputFile));
@@ -79,39 +84,42 @@ public class CompilationEngine implements AutoCloseable {
     var klass = document.createElement("class");
     document.appendChild(klass);
 
-    // keywordの書き込み
+    // keyword"class"の書き込み
     Element keyword = document.createElement(firstLine.get(ELEMENT_TYPE));
     klass.appendChild(keyword);
     keyword.appendChild(document.createTextNode(firstLine.get(ENCLOSED_CONTENT)));
 
-    // identifierの書き込み
+    // クラス名となるidentifierの書き込み TODO クラス名はシンボルテーブルに登録しなくていい？
     var secondLine = parseXMLLine(this.reader.readLine());
     Element identifier = document.createElement(secondLine.get(ELEMENT_TYPE));
     klass.appendChild(identifier);
     identifier.appendChild(document.createTextNode(secondLine.get(ENCLOSED_CONTENT)));
 
-    // symbolの書き込み
+    // symbol"{"の書き込み
     var thirdLine = parseXMLLine(this.reader.readLine());
     Element symbol = document.createElement(thirdLine.get(ELEMENT_TYPE));
     klass.appendChild(symbol);
     symbol.appendChild(document.createTextNode(thirdLine.get(ENCLOSED_CONTENT)));
 
+    // クラスのスコープにおけるシンボルテーブルの初期化
+    var symbolTable = new SymbolTable();
+
     // xml要素の種類によって適切な処理を呼び出す。
     while (true) {
       var forthLine = parseXMLLine(this.reader.readLine());
       switch (forthLine.get(CONTENT)) {
-        case "static":
-        case "field":
+        case STATIC_KEYWORD:
+        case FIELD_KEYWORD:
           Element classVarDec = document.createElement("classVarDec");
           klass.appendChild(classVarDec);
-          compileClassVarDec(classVarDec, forthLine);
+          compileClassVarDec(classVarDec, forthLine, symbolTable);
           continue;
-        case "function":
-        case "constructor":
-        case "method":
+        case FUNCTION_KEYWORD:
+        case CONSTRUCTOR_KEYWORD:
+        case METHOD_KEYWORD:
           Element subroutineDec = document.createElement("subroutineDec");
           klass.appendChild(subroutineDec);
-          compileSubroutine(subroutineDec, forthLine);
+          compileSubroutine(subroutineDec, forthLine, symbolTable);
           continue;
       }
       break;
@@ -159,30 +167,45 @@ public class CompilationEngine implements AutoCloseable {
     return " " + string + " ";
   }
 
-  public void compileClassVarDec(Element classVarDec, Map<String, String> stringMap)
+  /** スタティック宣言、フィールド宣言をコンパイルする。 */
+  public void compileClassVarDec(
+      Element classVarDec, Map<String, String> stringMap, SymbolTable symbolTable)
       throws IOException {
-    // keywordの書き込み
+    // keyword "static", "field"の書き込み
     appendChildIncludeText(classVarDec, stringMap);
 
-    // keywordの書き込み
+    // データ型を表すkeywordの書き込み
     var secondLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(classVarDec, secondLine);
 
-    // identifierの書き込み
+    // 変数名を表すidentifierの書き込み
     var thirdLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(classVarDec, thirdLine);
+
+    // identifierをクラスのスコープのシンボルテーブルへ登録 TODO 登録した情報もxmlファイルに出力する
+    symbolTable.define(
+        thirdLine.get(CONTENT),
+        secondLine.get(CONTENT),
+        IdentifierAttr.valueOf(stringMap.get(CONTENT)));
 
     var forthLine = parseXMLLine(this.reader.readLine());
     while (true) {
       if (forthLine.get(CONTENT).equals(";")) {
-        // symbol「;」の書き込み
+        // symbol";"の書き込み
         appendChildIncludeText(classVarDec, forthLine);
         break;
-      } else if (forthLine.get(CONTENT).equals(",")) {
+      } else if (forthLine.get(CONTENT).equals(",")) { // ","で区切られて複数の変数を宣言している場合
         appendChildIncludeText(classVarDec, forthLine);
 
+        // 変数名を表すidentifierの書き込み
         var fifthLine = parseXMLLine(this.reader.readLine());
         appendChildIncludeText(classVarDec, fifthLine);
+
+        // identifierをクラスのスコープのシンボルテーブルへ登録 TODO 登録した情報もxmlファイルに出力する
+        symbolTable.define(
+            fifthLine.get(CONTENT),
+            secondLine.get(CONTENT),
+            IdentifierAttr.valueOf(stringMap.get(CONTENT)));
 
         forthLine = parseXMLLine(this.reader.readLine());
         continue;
