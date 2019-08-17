@@ -213,30 +213,34 @@ public class CompilationEngine implements AutoCloseable {
     }
   }
 
-  public void compileSubroutine(Element subroutine, Map<String, String> stringMap)
+  /** メソッド、ファンクション、コンストラクタをコンパイルする。 */
+  public void compileSubroutine(
+      Element subroutine, Map<String, String> stringMap, SymbolTable symbolTable)
       throws IOException {
-    // keywordの書き込み
+    // keyword "function", "constructor", "method"の書き込み
     appendChildIncludeText(subroutine, stringMap);
 
-    // keywordの書き込み
+    // データ型を表すkeywordの書き込み
     var secondLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(subroutine, secondLine);
 
-    // identifierの書き込み
+    // メソッド、ファンクション、コンストラクタを表すidentifierの書き込み
     var thirdLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(subroutine, thirdLine);
+
+    // TODO クラスのスコープにおけるシンボルテーブルに関数名を表すidentifierに登録しなくていい？
 
     // symbol「(」の書き込み
     var forthLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(subroutine, forthLine);
 
-    compileParameterList(subroutine);
+    compileParameterList(subroutine); // TODO 引数をシンボルテーブルに登録する処理を追加。
 
     // symbol「)」の書き込み
     var fifthLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(subroutine, fifthLine);
 
-    // 「{ statements }」の書き込み
+    // 「{ statements }」の書き込み TODO statements内の変数をシンボルテーブルに登録する処理を追加。
     compileSubroutineBody(subroutine);
   }
 
