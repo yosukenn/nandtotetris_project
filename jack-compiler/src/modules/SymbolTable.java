@@ -8,11 +8,6 @@ import modules.data.IdentifierAttr;
 
 public class SymbolTable {
 
-  /*
-  static final String CLASS_NAME_TYPE = "classNameType";
-  static final String METHOD_NAME_TYPE = "methodNameType";
-  */
-
   int staticIndex = 0;
   int fieldIndex = 0;
 
