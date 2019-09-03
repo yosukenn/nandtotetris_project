@@ -70,7 +70,7 @@ public class CompilationEngine implements AutoCloseable {
   public void close() throws IOException {
     this.reader.close();
 
-    // 最後にドキュメントの生成を行う。
+    // 最後に構文木をXML形式での生成する。
     createXMLFile(this.outputFile, this.document);
   }
 
@@ -89,11 +89,10 @@ public class CompilationEngine implements AutoCloseable {
     klass.appendChild(keyword);
     keyword.appendChild(document.createTextNode(firstLine.get(ENCLOSED_CONTENT)));
 
-    // クラス名となるidentifierの書き込み TODO クラス名はシンボルテーブルに登録しなくていい？
+    // クラス名となるidentifierの書き込み TODO シンボルテーブル使うようになれば不要。
     var secondLine = parseXMLLine(this.reader.readLine());
     Element identifier = document.createElement(secondLine.get(ELEMENT_TYPE));
-    klass.appendChild(identifier);
-    identifier.appendChild(document.createTextNode(secondLine.get(ENCLOSED_CONTENT)));
+    writeIdentifierForSymbolTable(identifier, secondLine, "class", "defined", null, 0);
 
     // symbol"{"の書き込み
     var thirdLine = parseXMLLine(this.reader.readLine());
@@ -736,5 +735,48 @@ public class CompilationEngine implements AutoCloseable {
     Element element = document.createElement(stringLine.get(ELEMENT_TYPE));
     parent.appendChild(element);
     element.appendChild(document.createTextNode(stringLine.get(ENCLOSED_CONTENT)));
+  }
+
+  /**
+   * ソースコードに出てきた識別子に追加の情報を付与したのち、XML要素"identifier"に詰める。<br>
+   * TODO シンボルテーブル使うようになれば不要。
+   *
+   * <ul>
+   *   <li>識別子のカテゴリ
+   *   <li>識別子は定義されているか、使用されているか
+   *   <li>識別子の4つの属性と、実行番号。
+   * </ul>
+   */
+  private void writeIdentifierForSymbolTable(
+      Element identifierEle,
+      Map<String, String> contentMap,
+      String category,
+      String be,
+      String attribute,
+      int index) {
+    // content element の作成とtextの設定
+    var contentEle = document.createElement("content");
+    identifierEle.appendChild(contentEle);
+    contentEle.appendChild(document.createTextNode(contentMap.get(ENCLOSED_CONTENT)));
+
+    // category element の作成とtextの設定
+    var categoryEle = document.createElement("category");
+    identifierEle.appendChild(categoryEle);
+    categoryEle.appendChild(document.createTextNode(category));
+
+    // be element の作成とtextの設定
+    var beEle = document.createElement("be");
+    identifierEle.appendChild(beEle);
+    beEle.appendChild(document.createTextNode(be));
+
+    // attribute element の作成とtextの設定
+    var attrEle = document.createElement("attribute");
+    identifierEle.appendChild(attrEle);
+    attrEle.appendChild(document.createTextNode(attribute));
+
+    // index element の作成とtextの設定
+    var indexEle = document.createElement("index");
+    identifierEle.appendChild(indexEle);
+    indexEle.appendChild(document.createTextNode(Integer.toString(index)));
   }
 }
