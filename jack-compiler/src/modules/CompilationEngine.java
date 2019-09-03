@@ -100,9 +100,6 @@ public class CompilationEngine implements AutoCloseable {
     klass.appendChild(symbol);
     symbol.appendChild(document.createTextNode(thirdLine.get(ENCLOSED_CONTENT)));
 
-    // クラスのスコープにおけるシンボルテーブルの初期化
-    var symbolTable = new SymbolTable();
-
     // xml要素の種類によって適切な処理を呼び出す。
     while (true) {
       var forthLine = parseXMLLine(this.reader.readLine());
@@ -111,14 +108,14 @@ public class CompilationEngine implements AutoCloseable {
         case FIELD_KEYWORD:
           Element classVarDec = document.createElement("classVarDec");
           klass.appendChild(classVarDec);
-          compileClassVarDec(classVarDec, forthLine, symbolTable);
+          compileClassVarDec(classVarDec, forthLine);
           continue;
         case FUNCTION_KEYWORD:
         case CONSTRUCTOR_KEYWORD:
         case METHOD_KEYWORD:
           Element subroutineDec = document.createElement("subroutineDec");
           klass.appendChild(subroutineDec);
-          compileSubroutine(subroutineDec, forthLine, symbolTable);
+          compileSubroutine(subroutineDec, forthLine);
           continue;
       }
       break;
@@ -167,8 +164,7 @@ public class CompilationEngine implements AutoCloseable {
   }
 
   /** スタティック宣言、フィールド宣言をコンパイルする。 */
-  public void compileClassVarDec(
-      Element classVarDec, Map<String, String> stringMap, SymbolTable symbolTable)
+  public void compileClassVarDec(Element classVarDec, Map<String, String> stringMap)
       throws IOException {
     // keyword "static", "field"の書き込み
     appendChildIncludeText(classVarDec, stringMap);
@@ -177,15 +173,24 @@ public class CompilationEngine implements AutoCloseable {
     var secondLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(classVarDec, secondLine);
 
-    // 変数名を表すidentifierの書き込み
+    // 変数名を表すidentifierの書き込み TODO シンボルテーブルを使うようになれば不要となる。
     var thirdLine = parseXMLLine(this.reader.readLine());
+    var identifierEle = document.createElement(thirdLine.get(ELEMENT_TYPE));
+    writeIdentifierForSymbolTable(
+        identifierEle,
+        thirdLine,
+        stringMap.get(CONTENT),
+        "defined",
+        stringMap.get(CONTENT),
+        0 /* indexは一旦一律0にする */);
+
     appendChildIncludeText(classVarDec, thirdLine);
 
-    // identifierをクラスのスコープのシンボルテーブルへ登録 TODO 登録した情報もxmlファイルに出力する
-    symbolTable.define(
-        thirdLine.get(CONTENT),
-        secondLine.get(CONTENT),
-        IdentifierAttr.valueOf(stringMap.get(CONTENT)));
+    // identifierをクラスのスコープのシンボルテーブルへ登録
+    //    symbolTable.define(
+    //        thirdLine.get(CONTENT),
+    //        secondLine.get(CONTENT),
+    //        IdentifierAttr.valueOf(stringMap.get(CONTENT)));
 
     var forthLine = parseXMLLine(this.reader.readLine());
     while (true) {
@@ -196,15 +201,22 @@ public class CompilationEngine implements AutoCloseable {
       } else if (forthLine.get(CONTENT).equals(",")) { // ","で区切られて複数の変数を宣言している場合
         appendChildIncludeText(classVarDec, forthLine);
 
-        // 変数名を表すidentifierの書き込み
+        // 変数名を表すidentifierの書き込み TODO シンボルテーブルを使うようになれば不要となる。
         var fifthLine = parseXMLLine(this.reader.readLine());
-        appendChildIncludeText(classVarDec, fifthLine);
+        var identifierEle2 = document.createElement(thirdLine.get(ELEMENT_TYPE));
+        writeIdentifierForSymbolTable(
+            identifierEle2,
+            fifthLine,
+            stringMap.get(CONTENT),
+            "defined",
+            stringMap.get(CONTENT),
+            0 /* indexは一旦一律0にする */);
 
-        // identifierをクラスのスコープのシンボルテーブルへ登録 TODO 登録した情報もxmlファイルに出力する
-        symbolTable.define(
-            fifthLine.get(CONTENT),
-            secondLine.get(CONTENT),
-            IdentifierAttr.valueOf(stringMap.get(CONTENT)));
+        // identifierをクラスのスコープのシンボルテーブルへ登録
+        //        symbolTable.define(
+        //            fifthLine.get(CONTENT),
+        //            secondLine.get(CONTENT),
+        //            IdentifierAttr.valueOf(stringMap.get(CONTENT)));
 
         forthLine = parseXMLLine(this.reader.readLine());
         continue;
@@ -213,8 +225,7 @@ public class CompilationEngine implements AutoCloseable {
   }
 
   /** メソッド、ファンクション、コンストラクタをコンパイルする。 */
-  public void compileSubroutine(
-      Element subroutine, Map<String, String> stringMap, SymbolTable symbolTable)
+  public void compileSubroutine(Element subroutine, Map<String, String> stringMap)
       throws IOException {
     // keyword "function", "constructor", "method"の書き込み
     appendChildIncludeText(subroutine, stringMap);
