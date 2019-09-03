@@ -238,13 +238,11 @@ public class CompilationEngine implements AutoCloseable {
     var thirdLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(subroutine, thirdLine);
 
-    // TODO クラスのスコープにおけるシンボルテーブルに関数名を表すidentifierに登録しなくていい？
-
     // symbol「(」の書き込み
     var forthLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(subroutine, forthLine);
 
-    compileParameterList(subroutine); // TODO 引数をシンボルテーブルに登録する処理を追加。
+    compileParameterList(subroutine);
 
     // symbol「)」の書き込み
     var fifthLine = parseXMLLine(this.reader.readLine());
@@ -288,9 +286,16 @@ public class CompilationEngine implements AutoCloseable {
         // keyword(引数の型)をコンパイルする
         appendChildIncludeText(parameterList, firstLine);
 
-        // identifier(引数の変数名)をコンパイルする
+        // identifier(引数の変数名)をコンパイルする TODO シンボルテーブルを使うようになったらカテゴリとかの出力は不要になる。
         var secondLine = parseXMLLine(this.reader.readLine());
-        appendChildIncludeText(parameterList, secondLine);
+        var identifierEle = document.createElement("identifier");
+        writeIdentifierForSymbolTable(
+            identifierEle,
+            secondLine,
+            "argument",
+            "defined",
+            "argument",
+            0 /* 実行番号はシンボルテーブルを使うようになってから管理するので、一旦一律0にする。 */);
 
         // まだ引数があったらコンパイル。なかったらcompileParameterListを終了する。
         this.reader.mark(100);
@@ -310,7 +315,7 @@ public class CompilationEngine implements AutoCloseable {
 
   /**
    * var宣言は含まない。
-   *
+   * 
    * @param subroutineBody
    * @throws IOException
    */
