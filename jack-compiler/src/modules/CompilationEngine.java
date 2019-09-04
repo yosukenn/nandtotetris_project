@@ -500,7 +500,7 @@ public class CompilationEngine implements AutoCloseable {
     Element returnStatement = document.createElement("returnStatement");
     parent.appendChild(returnStatement);
 
-    // identifier"return"のコンパイル
+    // keyword"return"のコンパイル
     appendChildIncludeText(returnStatement, firstLine);
 
     this.reader.mark(100);
