@@ -468,13 +468,16 @@ public class CompilationEngine implements AutoCloseable {
     Element whileStatement = document.createElement("whileStatement");
     parent.appendChild(whileStatement);
 
+    // keyword"while"の書き込み
     appendChildIncludeText(whileStatement, firstLine);
 
+    // symbol"(" の書き込み
     var secondLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(whileStatement, secondLine);
 
     compileExpression(whileStatement);
 
+    // symbol ")" の書き込み
     var thirdLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(whileStatement, thirdLine);
 
@@ -612,19 +615,27 @@ public class CompilationEngine implements AutoCloseable {
     }
   }
 
+  /** 式(Expression)の一部分をコンパイルする */
   public void compileTerm(Element parent) throws IOException {
     Element term = document.createElement("term");
     parent.appendChild(term);
 
     var firstLine = parseXMLLine(this.reader.readLine());
-    //    if (firstLine.get(ELEMENT_TYPE).equals("identifier")) {
-    //
-    //    } else {
-    //    }
-    appendChildIncludeText(term, firstLine);
+    if (firstLine.get(ELEMENT_TYPE).equals("identifier")) { // TODO シンボルテーブルを使うようになれば不要。
+      // class_name or valiable
+      writeIdentifierForSymbolTable(
+          term,
+          firstLine,
+          "class or argument or static or field or subroutine",
+          "used",
+          "var or argument or static or field",
+          0 /* 暫定的に0 */);
+    } else {
+      appendChildIncludeText(term, firstLine);
+    }
 
     if (firstLine.get(CONTENT).equals("(")) {
-      // "( sign variable)" をコンパイルする。
+      // "( sign variable )" をコンパイルする。
 
       // "sign variable"
       compileExpression(term);
