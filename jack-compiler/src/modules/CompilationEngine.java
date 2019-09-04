@@ -396,9 +396,15 @@ public class CompilationEngine implements AutoCloseable {
     // keyword「do」の出力
     appendChildIncludeText(doStatement, firstLine);
 
-    // identifier 変数名 or メソッド名 の出力
+    // identifier 変数名 or メソッド名 の出力 TODO シンボルテーブルを使うようになれば不要。
     var secondLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(doStatement, secondLine);
+    writeIdentifierForSymbolTable(
+        doStatement,
+        secondLine,
+        "class or subroutine",
+        "used",
+        "class_name or subroutine_name",
+        0 /* 暫定的に0 */);
 
     var thirdLine = parseXMLLine(this.reader.readLine());
     if (thirdLine.get(CONTENT).equals(".")) {
@@ -435,7 +441,8 @@ public class CompilationEngine implements AutoCloseable {
 
     // identifierの出力
     var secondLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(letStatement, secondLine);
+    writeIdentifierForSymbolTable( // TODO シンボルテーブルを使うようになれば不要。
+        letStatement, secondLine, "static or field", "used", "static or field", 0 /* 暫定的に0 */);
 
     var thirdLine = parseXMLLine(this.reader.readLine());
     if (thirdLine.get(CONTENT).equals("[")) {
@@ -610,6 +617,10 @@ public class CompilationEngine implements AutoCloseable {
     parent.appendChild(term);
 
     var firstLine = parseXMLLine(this.reader.readLine());
+    //    if (firstLine.get(ELEMENT_TYPE).equals("identifier")) {
+    //
+    //    } else {
+    //    }
     appendChildIncludeText(term, firstLine);
 
     if (firstLine.get(CONTENT).equals("(")) {
