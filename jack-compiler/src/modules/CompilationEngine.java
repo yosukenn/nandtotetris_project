@@ -91,8 +91,7 @@ public class CompilationEngine implements AutoCloseable {
 
     // クラス名となるidentifierの書き込み TODO シンボルテーブル使うようになれば不要。
     var secondLine = parseXMLLine(this.reader.readLine());
-    Element identifier = document.createElement(secondLine.get(ELEMENT_TYPE));
-    writeIdentifierForSymbolTable(identifier, secondLine, "class", "defined", null, 0);
+    writeIdentifierForSymbolTable(klass, secondLine, "class", "defined", "not applicable", 0);
 
     // symbol"{"の書き込み
     var thirdLine = parseXMLLine(this.reader.readLine());
@@ -175,16 +174,15 @@ public class CompilationEngine implements AutoCloseable {
 
     // 変数名を表すidentifierの書き込み TODO シンボルテーブルを使うようになれば不要となる。
     var thirdLine = parseXMLLine(this.reader.readLine());
-    var identifierEle = document.createElement(thirdLine.get(ELEMENT_TYPE));
     writeIdentifierForSymbolTable(
-        identifierEle,
+        classVarDec,
         thirdLine,
         stringMap.get(CONTENT),
         "defined",
         stringMap.get(CONTENT),
         0 /* indexは一旦一律0にする */);
 
-    appendChildIncludeText(classVarDec, thirdLine);
+    //    appendChildIncludeText(classVarDec, thirdLine);
 
     // identifierをクラスのスコープのシンボルテーブルへ登録
     //    symbolTable.define(
@@ -203,9 +201,8 @@ public class CompilationEngine implements AutoCloseable {
 
         // 変数名を表すidentifierの書き込み TODO シンボルテーブルを使うようになれば不要となる。
         var fifthLine = parseXMLLine(this.reader.readLine());
-        var identifierEle2 = document.createElement(thirdLine.get(ELEMENT_TYPE));
         writeIdentifierForSymbolTable(
-            identifierEle2,
+            classVarDec,
             fifthLine,
             stringMap.get(CONTENT),
             "defined",
@@ -288,9 +285,8 @@ public class CompilationEngine implements AutoCloseable {
 
         // identifier(引数の変数名)をコンパイルする TODO シンボルテーブルを使うようになったらカテゴリとかの出力は不要になる。
         var secondLine = parseXMLLine(this.reader.readLine());
-        var identifierEle = document.createElement("identifier");
         writeIdentifierForSymbolTable(
-            identifierEle,
+            parameterList,
             secondLine,
             "argument",
             "defined",
@@ -315,7 +311,7 @@ public class CompilationEngine implements AutoCloseable {
 
   /**
    * var宣言は含まない。
-   * 
+   *
    * @param subroutineBody
    * @throws IOException
    */
@@ -400,7 +396,7 @@ public class CompilationEngine implements AutoCloseable {
     // keyword「do」の出力
     appendChildIncludeText(doStatement, firstLine);
 
-    // identifierの出力 TODO メソッドの実行主体が書かれていない場合の処理(privateメソッド)
+    // identifier 変数名 or メソッド名 の出力
     var secondLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(doStatement, secondLine);
 
@@ -760,16 +756,20 @@ public class CompilationEngine implements AutoCloseable {
    * <ul>
    *   <li>識別子のカテゴリ
    *   <li>識別子は定義されているか、使用されているか
-   *   <li>識別子の4つの属性と、実行番号。
+   *   <li>識別子の4つの属性(var, argument, static, field, not applicable)と、実行番号。
    * </ul>
    */
   private void writeIdentifierForSymbolTable(
-      Element identifierEle,
+      Element parent,
       Map<String, String> contentMap,
       String category,
       String be,
       String attribute,
       int index) {
+
+    Element identifierEle = document.createElement(contentMap.get(ELEMENT_TYPE));
+    parent.appendChild(identifierEle);
+
     // content element の作成とtextの設定
     var contentEle = document.createElement("content");
     identifierEle.appendChild(contentEle);
