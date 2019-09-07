@@ -20,14 +20,14 @@ public class JackCompiler {
         File[] jackFiles = source.listFiles();
         for (var jackFile : jackFiles) {
           if (jackFile.getName().endsWith(".jack")) {
-            analyze(jackFile);
+            compile(jackFile);
           }
         }
       } else if (source.isFile()) {
         if (!source.getName().endsWith(".jack")) {
           throw new IllegalArgumentException("指定されたファイルは.jackファイルではありません。");
         }
-        analyze(source);
+        compile(source);
       }
     } catch (Exception e) {
       System.out.println("解析中にエラーが発生したため、プログラムを終了します。");
@@ -37,6 +37,12 @@ public class JackCompiler {
     }
   }
 
+  /**
+   * jackファイル内の全ての行を読み込み、文字列に変換します。
+   *
+   * @param source .jackファイル
+   * @return .jackファイル内のプログラム文字列
+   */
   private static String readAllProgramInJackfile(File source) {
     StringBuilder readString = new StringBuilder();
     // 1文字ずつ読んでシンボルだったら空白を挿入する。
@@ -70,7 +76,8 @@ public class JackCompiler {
     return readString.toString();
   }
 
-  private static void analyze(File source) throws IOException, XMLStreamException {
+  /** .jackファイルをコンパイルして.vmファイルを生成します。 */
+  private static void compile(File source) throws IOException, XMLStreamException {
     String jackProgram = JackCompiler.readAllProgramInJackfile(source);
 
     int lastDotIndexOfInputFile = source.getName().lastIndexOf(".");
@@ -112,10 +119,10 @@ public class JackCompiler {
     }
 
     // ⑵ Xxx.xml という名前の出力ファイルを作り、それに書き込みを行う準備をする。
-    try (var comlilationEngine =
+    try (var compilationEngine =
         new CompilationEngine(tokenizerOutputFilename, compileEngineOutputFilename)) {
       // ⑶ 入力である JackTokenizer を出力ファイルへコンパイルするために、ConpilationEngine を用いる。
-      comlilationEngine.compileClass(); // 必ず最初はtarminal: class
+      compilationEngine.compileClass(); // 必ず最初はterminal: class
     }
   }
 }
