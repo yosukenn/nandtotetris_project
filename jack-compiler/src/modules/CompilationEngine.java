@@ -226,6 +226,10 @@ public class CompilationEngine implements AutoCloseable {
   /** メソッド、ファンクション、コンストラクタをコンパイルする。 */
   public void compileSubroutine(Element subroutine, Map<String, String> stringMap)
       throws IOException {
+    // サブルーチンスコープのシンボルテーブルを作成
+    var subroutineSymbolTable = new SymbolTable();
+    subroutineSymbolTable.startSubroutine(); // 何もしていない。
+
     // keyword "function", "constructor", "method"の書き込み
     appendChildIncludeText(subroutine, stringMap);
 
@@ -241,7 +245,7 @@ public class CompilationEngine implements AutoCloseable {
     var forthLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(subroutine, forthLine);
 
-    compileParameterList(subroutine);
+    compileParameterList(subroutineSymbolTable, subroutine);
 
     // symbol「)」の書き込み
     var fifthLine = parseXMLLine(this.reader.readLine());
@@ -274,7 +278,8 @@ public class CompilationEngine implements AutoCloseable {
     appendChildIncludeText(subroutineBody, thirdLine);
   }
 
-  public void compileParameterList(Element subroutine) throws IOException {
+  public void compileParameterList(SymbolTable subroutineSymbolTable, Element subroutine)
+      throws IOException {
     Element parameterList = document.createElement("parameterList");
     subroutine.appendChild(parameterList);
 
@@ -282,10 +287,10 @@ public class CompilationEngine implements AutoCloseable {
     var firstLine = parseXMLLine(this.reader.readLine());
     if (firstLine.get(ELEMENT_TYPE).equals("keyword")) {
       while (true) {
-        // keyword(引数の型)をコンパイルする
+        // keyword(引数の型)を構文木に書き込む
         appendChildIncludeText(parameterList, firstLine);
 
-        // identifier(引数の変数名)をコンパイルする TODO シンボルテーブルを使うようになったらカテゴリとかの出力は不要になる。
+        // identifier(引数の変数名)を構文木に書き込む
         var secondLine = parseXMLLine(this.reader.readLine());
         writeIdentifierForSymbolTable(
             parameterList,
@@ -294,6 +299,10 @@ public class CompilationEngine implements AutoCloseable {
             "defined",
             "argument",
             0 /* 実行番号はシンボルテーブルを使うようになってから管理するので、一旦一律0にする。 */);
+
+        // identifierをシンボルテーブルに登録する。
+        subroutineSymbolTable.define(
+            secondLine.get(CONTENT), firstLine.get(CONTENT), IdentifierAttr.ARG);
 
         // まだ引数があったらコンパイル。なかったらcompileParameterListを終了する。
         this.reader.mark(100);
