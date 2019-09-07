@@ -75,6 +75,9 @@ public class CompilationEngine implements AutoCloseable {
   }
 
   public void compileClass() throws IOException {
+    // シンボルテーブルの生成
+    var classSymbolTable = new SymbolTable();
+
     var firstLine = parseXMLLine(this.reader.readLine());
     if (!firstLine.get(CONTENT).equals("class")) {
       throw new IllegalStateException();
@@ -89,7 +92,7 @@ public class CompilationEngine implements AutoCloseable {
     klass.appendChild(keyword);
     keyword.appendChild(document.createTextNode(firstLine.get(ENCLOSED_CONTENT)));
 
-    // クラス名となるidentifierの書き込み TODO シンボルテーブル使うようになれば不要。
+    // クラス名となるidentifierの書き込み。クラス名はシンボルテーブルに記録しない。
     var secondLine = parseXMLLine(this.reader.readLine());
     writeIdentifierForSymbolTable(klass, secondLine, "class", "defined", "not applicable", 0);
 
@@ -107,7 +110,7 @@ public class CompilationEngine implements AutoCloseable {
         case FIELD_KEYWORD:
           Element classVarDec = document.createElement("classVarDec");
           klass.appendChild(classVarDec);
-          compileClassVarDec(classVarDec, forthLine);
+          compileClassVarDec(classSymbolTable, classVarDec, forthLine);
           continue;
         case FUNCTION_KEYWORD:
         case CONSTRUCTOR_KEYWORD:
@@ -163,7 +166,8 @@ public class CompilationEngine implements AutoCloseable {
   }
 
   /** スタティック宣言、フィールド宣言をコンパイルする。 */
-  public void compileClassVarDec(Element classVarDec, Map<String, String> stringMap)
+  public void compileClassVarDec(
+      SymbolTable classSymbolTable, Element classVarDec, Map<String, String> stringMap)
       throws IOException {
     // keyword "static", "field"の書き込み
     appendChildIncludeText(classVarDec, stringMap);
@@ -172,7 +176,7 @@ public class CompilationEngine implements AutoCloseable {
     var secondLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(classVarDec, secondLine);
 
-    // 変数名を表すidentifierの書き込み TODO シンボルテーブルを使うようになれば不要となる。
+    // 変数名を表すidentifierの書き込み
     var thirdLine = parseXMLLine(this.reader.readLine());
     writeIdentifierForSymbolTable(
         classVarDec,
@@ -182,13 +186,11 @@ public class CompilationEngine implements AutoCloseable {
         stringMap.get(CONTENT),
         0 /* indexは一旦一律0にする */);
 
-    //    appendChildIncludeText(classVarDec, thirdLine);
-
-    // identifierをクラスのスコープのシンボルテーブルへ登録
-    //    symbolTable.define(
-    //        thirdLine.get(CONTENT),
-    //        secondLine.get(CONTENT),
-    //        IdentifierAttr.valueOf(stringMap.get(CONTENT)));
+    // identifierのシンボルテーブルへの登録。
+    classSymbolTable.define(
+        thirdLine.get(CONTENT),
+        secondLine.get(CONTENT),
+        IdentifierAttr.fromCode(stringMap.get(CONTENT)));
 
     var forthLine = parseXMLLine(this.reader.readLine());
     while (true) {
@@ -199,7 +201,7 @@ public class CompilationEngine implements AutoCloseable {
       } else if (forthLine.get(CONTENT).equals(",")) { // ","で区切られて複数の変数を宣言している場合
         appendChildIncludeText(classVarDec, forthLine);
 
-        // 変数名を表すidentifierの書き込み TODO シンボルテーブルを使うようになれば不要となる。
+        // 変数名を表すidentifierの書き込み
         var fifthLine = parseXMLLine(this.reader.readLine());
         writeIdentifierForSymbolTable(
             classVarDec,
@@ -209,11 +211,11 @@ public class CompilationEngine implements AutoCloseable {
             stringMap.get(CONTENT),
             0 /* indexは一旦一律0にする */);
 
-        // identifierをクラスのスコープのシンボルテーブルへ登録
-        //        symbolTable.define(
-        //            fifthLine.get(CONTENT),
-        //            secondLine.get(CONTENT),
-        //            IdentifierAttr.valueOf(stringMap.get(CONTENT)));
+        // identifierのシンボルテーブルへの登録。
+        classSymbolTable.define(
+            fifthLine.get(CONTENT),
+            secondLine.get(CONTENT),
+            IdentifierAttr.fromCode(stringMap.get(CONTENT)));
 
         forthLine = parseXMLLine(this.reader.readLine());
         continue;
