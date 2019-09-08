@@ -342,20 +342,20 @@ public class CompilationEngine implements AutoCloseable {
     while (true) {
       switch (line.get(CONTENT)) {
         case "do":
-          compileDo(statements, line);
+          compileDo(subroutineSymbolTable, statements, line);
           break;
         case "let":
-          compileLet(statements, line);
+          compileLet(subroutineSymbolTable, statements, line);
           break;
         case "while":
-          compileWhile(statements, line);
+          compileWhile(subroutineSymbolTable, statements, line);
           break;
         case "return":
           compileReturn(statements, line);
           returnFlg = 1;
           break;
         case "if":
-          compileIf(statements, line);
+          compileIf(subroutineSymbolTable, statements, line);
           break;
       }
       var readLine = this.reader.readLine();
@@ -416,14 +416,16 @@ public class CompilationEngine implements AutoCloseable {
     }
   }
 
-  public void compileDo(Element subroutineBody, Map<String, String> firstLine) throws IOException {
+  public void compileDo(
+      SymbolTable subroutineSymbolTable, Element subroutineBody, Map<String, String> firstLine)
+      throws IOException {
     Element doStatement = document.createElement("doStatement");
     subroutineBody.appendChild(doStatement);
 
     // keyword「do」の出力
     appendChildIncludeText(doStatement, firstLine);
 
-    // identifier 変数名 or メソッド名 の出力 TODO シンボルテーブルを使うようになれば不要。
+    // identifier 変数名 or メソッド名 の出力
     var secondLine = parseXMLLine(this.reader.readLine());
     writeIdentifierForSymbolTable(
         doStatement,
@@ -459,7 +461,9 @@ public class CompilationEngine implements AutoCloseable {
     }
   }
 
-  public void compileLet(Element subroutineBody, Map<String, String> firstLine) throws IOException {
+  public void compileLet(
+      SymbolTable subroutineSymbolTable, Element subroutineBody, Map<String, String> firstLine)
+      throws IOException {
     Element letStatement = document.createElement("letStatement");
     subroutineBody.appendChild(letStatement);
 
@@ -468,7 +472,7 @@ public class CompilationEngine implements AutoCloseable {
 
     // identifierの出力
     var secondLine = parseXMLLine(this.reader.readLine());
-    writeIdentifierForSymbolTable( // TODO シンボルテーブルを使うようになれば不要。
+    writeIdentifierForSymbolTable(
         letStatement, secondLine, "static or field", "used", "static or field", 0 /* 暫定的に0 */);
 
     var thirdLine = parseXMLLine(this.reader.readLine());
@@ -491,7 +495,9 @@ public class CompilationEngine implements AutoCloseable {
     appendChildIncludeText(letStatement, forthLine);
   }
 
-  public void compileWhile(Element parent, Map<String, String> firstLine) throws IOException {
+  public void compileWhile(
+      SymbolTable subroutineSymbolTable, Element parent, Map<String, String> firstLine)
+      throws IOException {
     Element whileStatement = document.createElement("whileStatement");
     parent.appendChild(whileStatement);
 
@@ -513,7 +519,7 @@ public class CompilationEngine implements AutoCloseable {
     appendChildIncludeText(whileStatement, forthLine);
 
     var fifthLine = parseXMLLine(this.reader.readLine());
-    compileStatements(whileStatement, fifthLine);
+    compileStatements(subroutineSymbolTable, whileStatement, fifthLine);
 
     // TODO compileStatements()で行を読み込み過ぎているのを修正する必要があるが、これを修正すると崩壊するので無理やり"}"をコンパイルするようにしている。
     // symbol「}」の書き込み
@@ -545,7 +551,9 @@ public class CompilationEngine implements AutoCloseable {
     }
   }
 
-  public void compileIf(Element parent, Map<String, String> firstLine) throws IOException {
+  public void compileIf(
+      SymbolTable subroutineSymbolTable, Element parent, Map<String, String> firstLine)
+      throws IOException {
     Element ifStatement = document.createElement("ifStatement");
     parent.appendChild(ifStatement);
 
@@ -568,7 +576,7 @@ public class CompilationEngine implements AutoCloseable {
 
     // statementsのコンパイル
     var forthLine = parseXMLLine(this.reader.readLine());
-    compileStatements(ifStatement, forthLine);
+    compileStatements(subroutineSymbolTable, ifStatement, forthLine);
 
     // symbol"}"のコンパイル
     var fifthLine = Map.of(ELEMENT_TYPE, "symbol", CONTENT, "}", ENCLOSED_CONTENT, " } ");
@@ -584,7 +592,7 @@ public class CompilationEngine implements AutoCloseable {
       appendChildIncludeText(ifStatement, parseXMLLine(this.reader.readLine()));
 
       // statementsのコンパイル
-      compileStatements(ifStatement, parseXMLLine(this.reader.readLine()));
+      compileStatements(subroutineSymbolTable, ifStatement, parseXMLLine(this.reader.readLine()));
 
       // symbol"}"のコンパイル
       var seventhLine = Map.of(ELEMENT_TYPE, "symbol", CONTENT, "}", ENCLOSED_CONTENT, " } ");
@@ -712,8 +720,6 @@ public class CompilationEngine implements AutoCloseable {
         break;
       }
     }
-
-    // TODO 実引数が複数ある時の処理
   }
 
   private static boolean createXMLFile(File file, Document document) {
