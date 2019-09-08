@@ -252,10 +252,11 @@ public class CompilationEngine implements AutoCloseable {
     appendChildIncludeText(subroutine, fifthLine);
 
     // 「{ statements }」の書き込み TODO statements内の変数をシンボルテーブルに登録する処理を追加。
-    compileSubroutineBody(subroutine);
+    compileSubroutineBody(subroutineSymbolTable, subroutine);
   }
 
-  private void compileSubroutineBody(Element subroutine) throws IOException {
+  private void compileSubroutineBody(SymbolTable subroutineSymbolTable, Element subroutine)
+      throws IOException {
     Element subroutineBody = document.createElement("subroutineBody");
     subroutine.appendChild(subroutineBody);
 
@@ -265,10 +266,12 @@ public class CompilationEngine implements AutoCloseable {
 
     while (true) {
       var secondLine = parseXMLLine(this.reader.readLine());
-      if (secondLine.get(CONTENT).equals("var")) {
-        compileVarDec(subroutineBody, secondLine);
+      if (secondLine
+          .get(CONTENT)
+          .equals("var")) { // TODO { subroutineBody } の冒頭でvar宣言がされることを前提としているコードなので欠陥がある。
+        compileVarDec(subroutineSymbolTable, subroutineBody, secondLine);
       } else {
-        compileStatements(subroutineBody, secondLine);
+        compileStatements(subroutineSymbolTable, subroutineBody, secondLine);
         break;
       }
     }
@@ -321,12 +324,14 @@ public class CompilationEngine implements AutoCloseable {
   }
 
   /**
+   * 一連の文をコンパイルする。<br>
    * var宣言は含まない。
    *
    * @param subroutineBody
    * @throws IOException
    */
-  public void compileStatements(Element subroutineBody, Map<String, String> firstLine)
+  public void compileStatements(
+      SymbolTable subroutineSymbolTable, Element subroutineBody, Map<String, String> firstLine)
       throws IOException {
     Element statements = document.createElement("statements");
     subroutineBody.appendChild(statements);
@@ -365,7 +370,9 @@ public class CompilationEngine implements AutoCloseable {
     }
   }
 
-  public void compileVarDec(Element subroutineBody, Map<String, String> firstLine)
+  /** サブルーチン内のローカル変数宣言をコンパイルする。 */
+  public void compileVarDec(
+      SymbolTable subroutineSymbolTable, Element subroutineBody, Map<String, String> firstLine)
       throws IOException {
     Element varDec = document.createElement("varDec");
     subroutineBody.appendChild(varDec);
@@ -381,6 +388,10 @@ public class CompilationEngine implements AutoCloseable {
     var thirdLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(varDec, thirdLine);
 
+    // シンボルテーブルへの登録
+    subroutineSymbolTable.define(
+        thirdLine.get(CONTENT), secondLine.get(CONTENT), IdentifierAttr.VAR);
+
     // 変数の出力
     var forthLine = parseXMLLine(this.reader.readLine());
     while (true) {
@@ -391,8 +402,13 @@ public class CompilationEngine implements AutoCloseable {
       } else if (forthLine.get(CONTENT).equals(",")) {
         appendChildIncludeText(varDec, forthLine);
 
+        // 変数名を表すidentifier の書き込み
         var fifthLine = parseXMLLine(this.reader.readLine());
         appendChildIncludeText(varDec, fifthLine);
+
+        // シンボルテーブルへの登録
+        subroutineSymbolTable.define(
+            fifthLine.get(CONTENT), secondLine.get(CONTENT), IdentifierAttr.VAR);
 
         forthLine = parseXMLLine(this.reader.readLine());
         continue;
