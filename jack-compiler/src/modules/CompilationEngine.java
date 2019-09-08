@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -23,7 +24,7 @@ import org.w3c.dom.Element;
 
 /*
 TODO 修正できる点（多分やらないけど）
- - compileXX 内でwhilu文で繰り返し処理をしなくても、再帰的にメソッドを呼び出せばもっとシンプルにかける。
+ - compileXX 内でwhile文で繰り返し処理をしなくても、再帰的にメソッドを呼び出せばもっとシンプルにかける。
  */
 
 /** 再帰によるトップダウン式の解析器<br> */
@@ -37,17 +38,24 @@ public class CompilationEngine implements AutoCloseable {
 
   private File outputFile;
 
+  /** 生成するVMファイルの親ディレクトリを表すファイルオブジェクト */
+  private File parentPath;
+
+  // xxT.wmlファイルの行内容を表すプロパティ一覧
   private static final String ELEMENT_TYPE = "elementType";
   private static final String CONTENT = "content";
   private static final String ENCLOSED_CONTENT = "enclosed_content";
 
+  // キーワード一覧
   private static final String STATIC_KEYWORD = "static";
   private static final String FIELD_KEYWORD = "field";
   private static final String FUNCTION_KEYWORD = "function";
   private static final String CONSTRUCTOR_KEYWORD = "constructor";
   private static final String METHOD_KEYWORD = "method";
 
-  public CompilationEngine(String inputFile, String outputFile) throws IOException {
+  public CompilationEngine(File parentDir, String inputFile, String outputFile) throws IOException {
+    this.parentPath = parentDir;
+
     this.reader = new BufferedReader(new FileReader(inputFile));
     var firstLine = this.reader.readLine();
     if (!firstLine.equals("<tokens>")) {
@@ -96,37 +104,40 @@ public class CompilationEngine implements AutoCloseable {
     var secondLine = parseXMLLine(this.reader.readLine());
     writeIdentifierForSymbolTable(klass, secondLine, "class", "defined", "not applicable", 0);
 
-    // symbol"{"の書き込み
-    var thirdLine = parseXMLLine(this.reader.readLine());
-    Element symbol = document.createElement(thirdLine.get(ELEMENT_TYPE));
-    klass.appendChild(symbol);
-    symbol.appendChild(document.createTextNode(thirdLine.get(ENCLOSED_CONTENT)));
+    // VMWriterの生成
+    try (var vmWriter = new VMWriter(new File(parentPath, secondLine.get(CONTENT) + ".vm"))) {
+      // symbol"{"の書き込み
+      var thirdLine = parseXMLLine(this.reader.readLine());
+      Element symbol = document.createElement(thirdLine.get(ELEMENT_TYPE));
+      klass.appendChild(symbol);
+      symbol.appendChild(document.createTextNode(thirdLine.get(ENCLOSED_CONTENT)));
 
-    // xml要素の種類によって適切な処理を呼び出す。
-    while (true) {
-      var forthLine = parseXMLLine(this.reader.readLine());
-      switch (forthLine.get(CONTENT)) {
-        case STATIC_KEYWORD:
-        case FIELD_KEYWORD:
-          Element classVarDec = document.createElement("classVarDec");
-          klass.appendChild(classVarDec);
-          compileClassVarDec(classSymbolTable, classVarDec, forthLine);
-          continue;
-        case FUNCTION_KEYWORD:
-        case CONSTRUCTOR_KEYWORD:
-        case METHOD_KEYWORD:
-          Element subroutineDec = document.createElement("subroutineDec");
-          klass.appendChild(subroutineDec);
-          compileSubroutine(subroutineDec, forthLine);
-          continue;
+      // xml要素の種類によって適切な処理を呼び出す。
+      while (true) {
+        var forthLine = parseXMLLine(this.reader.readLine());
+        switch (forthLine.get(CONTENT)) {
+          case STATIC_KEYWORD:
+          case FIELD_KEYWORD:
+            Element classVarDec = document.createElement("classVarDec");
+            klass.appendChild(classVarDec);
+            compileClassVarDec(classSymbolTable, classVarDec, forthLine);
+            continue;
+          case FUNCTION_KEYWORD:
+          case CONSTRUCTOR_KEYWORD:
+          case METHOD_KEYWORD:
+            Element subroutineDec = document.createElement("subroutineDec");
+            klass.appendChild(subroutineDec);
+            compileSubroutine(subroutineDec, forthLine);
+            continue;
+        }
+        break;
       }
-      break;
+      // 最後にsymbol"}"を出力 TODO 過剰に読み取っていて"}"を出力できていないので、一旦無理やり出力している。
+      //    var fifthLine = parseXMLLine(this.reader.readLine());
+      //    appendChildIncludeText(klass, fifthLine);
+      appendChildIncludeText(
+          klass, Map.of(ELEMENT_TYPE, "symbol", CONTENT, "}", ENCLOSED_CONTENT, " } "));
     }
-    // 最後にsymbol"}"を出力 TODO 過剰に読み取っていて"}"を出力できていないので、一旦無理やり出力している。
-    //    var fifthLine = parseXMLLine(this.reader.readLine());
-    //    appendChildIncludeText(klass, fifthLine);
-    appendChildIncludeText(
-        klass, Map.of(ELEMENT_TYPE, "symbol", CONTENT, "}", ENCLOSED_CONTENT, " } "));
   }
 
   private Map<String, String> parseXMLLine(String line) {
@@ -251,7 +262,7 @@ public class CompilationEngine implements AutoCloseable {
     var fifthLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(subroutine, fifthLine);
 
-    // 「{ statements }」の書き込み TODO statements内の変数をシンボルテーブルに登録する処理を追加。
+    // 「{ statements }」の書き込み
     compileSubroutineBody(subroutineSymbolTable, subroutine);
   }
 

@@ -118,10 +118,11 @@ public class JackCompiler {
       System.out.println(e.getMessage());
     }
 
-    // ⑵ Xxx.xml という名前の出力ファイルを作り、それに書き込みを行う準備をする。
     try (var compilationEngine =
-        new CompilationEngine(tokenizerOutputFilename, compileEngineOutputFilename)) {
-      // ⑶ 入力である JackTokenizer を出力ファイルへコンパイルするために、ConpilationEngine を用いる。
+        new CompilationEngine(
+            source.getParentFile(), // 生成するvmファイルの親ディレクトリパスを指定
+            tokenizerOutputFilename,
+            compileEngineOutputFilename)) {
       compilationEngine.compileClass(); // 必ず最初はterminal: class
     }
   }

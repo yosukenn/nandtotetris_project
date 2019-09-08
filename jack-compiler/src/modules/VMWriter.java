@@ -1,13 +1,19 @@
 package modules;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import modules.data.ArithmeticCommand;
 import modules.data.Segment;
 
 /** VMコマンドの構文に従い、VMコマンドをファイルへ書き出す。 */
-public class VMWriter {
+public class VMWriter extends BufferedWriter implements AutoCloseable {
 
   /** 新しいファイルを作り、それに書き込む準備をする。 */
-  public VMWriter() {}
+  public VMWriter(File file) throws IOException {
+    super(new FileWriter(file, true)); // 上書きを許容する。
+  }
 
   /** pushコマンドを書く。 */
   public void writePush(Segment segment, int index) {}
@@ -37,5 +43,7 @@ public class VMWriter {
   public void writeReturn() {}
 
   /** 出力ファイルを閉じる。 */
-  public void close() {}
+  public void close() throws IOException {
+    super.close();
+  }
 }
