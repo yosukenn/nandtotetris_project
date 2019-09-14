@@ -27,7 +27,10 @@ TODO 修正できる点（多分やらないけど）
  - compileXX 内でwhile文で繰り返し処理をしなくても、再帰的にメソッドを呼び出せばもっとシンプルにかける。
  */
 
-/** 再帰によるトップダウン式の解析器<br> */
+/**
+ * 再帰によるトップダウン式の解析器<br>
+ * 構文木であるXMLファイル生成関連のプログラムには[create syntax tree]を付与しています。
+ */
 public class CompilationEngine implements AutoCloseable {
 
   BufferedReader reader;
@@ -94,16 +97,16 @@ public class CompilationEngine implements AutoCloseable {
       throw new IllegalStateException();
     }
 
-    // classの書き込み
+    // [create syntax tree]classの書き込み
     var klass = document.createElement("class");
     document.appendChild(klass);
 
-    // keyword"class"の書き込み
+    // [create syntax tree]keyword"class"の書き込み
     Element keyword = document.createElement(firstLine.get(ELEMENT_TYPE));
     klass.appendChild(keyword);
     keyword.appendChild(document.createTextNode(firstLine.get(ENCLOSED_CONTENT)));
 
-    // クラス名となるidentifierの書き込み。クラス名はシンボルテーブルに記録しない。
+    // [create syntax tree]クラス名となるidentifierの書き込み。クラス名はシンボルテーブルに記録しない。
     var secondLine = parseXMLLine(this.reader.readLine());
     writeIdentifierForSymbolTable(klass, secondLine, "class", "defined", "not applicable", 0);
     this.compiledClassName = secondLine.get(CONTENT);
@@ -116,7 +119,7 @@ public class CompilationEngine implements AutoCloseable {
       klass.appendChild(symbol);
       symbol.appendChild(document.createTextNode(thirdLine.get(ENCLOSED_CONTENT)));
 
-      // xml要素の種類によって適切な処理を呼び出す。
+      // [create syntax tree]xml要素の種類によって適切な処理を呼び出す。
       while (true) {
         var forthLine = parseXMLLine(this.reader.readLine());
         switch (forthLine.get(CONTENT)) {
@@ -131,7 +134,7 @@ public class CompilationEngine implements AutoCloseable {
           case METHOD_KEYWORD:
             Element subroutineDec = document.createElement("subroutineDec");
             klass.appendChild(subroutineDec);
-            compileSubroutine(subroutineDec, forthLine);
+            compileSubroutine(subroutineDec, forthLine, vmWriter);
             continue;
         }
         break;
@@ -184,14 +187,14 @@ public class CompilationEngine implements AutoCloseable {
   public void compileClassVarDec(
       SymbolTable classSymbolTable, Element classVarDec, Map<String, String> stringMap)
       throws IOException {
-    // keyword "static", "field"の書き込み
+    // [create syntax tree]keyword "static", "field"の書き込み
     appendChildIncludeText(classVarDec, stringMap);
 
-    // データ型を表すkeywordの書き込み
+    // [create syntax tree]データ型を表すkeywordの書き込み
     var secondLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(classVarDec, secondLine);
 
-    // 変数名を表すidentifierの書き込み
+    // [create syntax tree]変数名を表すidentifierの書き込み
     var thirdLine = parseXMLLine(this.reader.readLine());
     writeIdentifierForSymbolTable(
         classVarDec,
@@ -210,13 +213,13 @@ public class CompilationEngine implements AutoCloseable {
     var forthLine = parseXMLLine(this.reader.readLine());
     while (true) {
       if (forthLine.get(CONTENT).equals(";")) {
-        // symbol";"の書き込み
+        // [create syntax tree]symbol";"の書き込み
         appendChildIncludeText(classVarDec, forthLine);
         break;
       } else if (forthLine.get(CONTENT).equals(",")) { // ","で区切られて複数の変数を宣言している場合
         appendChildIncludeText(classVarDec, forthLine);
 
-        // 変数名を表すidentifierの書き込み
+        // [create syntax tree]変数名を表すidentifierの書き込み
         var fifthLine = parseXMLLine(this.reader.readLine());
         writeIdentifierForSymbolTable(
             classVarDec,
@@ -226,7 +229,7 @@ public class CompilationEngine implements AutoCloseable {
             stringMap.get(CONTENT),
             0 /* indexは一旦一律0にする */);
 
-        // identifierのシンボルテーブルへの登録。
+        // [create syntax tree]identifierのシンボルテーブルへの登録。
         classSymbolTable.define(
             fifthLine.get(CONTENT),
             secondLine.get(CONTENT),
@@ -238,38 +241,42 @@ public class CompilationEngine implements AutoCloseable {
     }
   }
 
-  // TODO 次回はsubroutineのコンパイル処理を書くところから。シンボルテーブルへの定義部分は実装済。
-  //
   /** メソッド、ファンクション、コンストラクタをコンパイルする。 */
-  public void compileSubroutine(Element subroutine, Map<String, String> stringMap)
-      throws IOException {
+  public void compileSubroutine(
+      Element subroutine, Map<String, String> stringMap, VMWriter vmWriter) throws IOException {
     // サブルーチンスコープのシンボルテーブルを作成
     var subroutineSymbolTable = new SymbolTable();
     subroutineSymbolTable.startSubroutine();
 
-    // keyword "function", "constructor", "method"の書き込み
+    // [create syntax tree]keyword "function", "constructor", "method"の書き込み
     appendChildIncludeText(subroutine, stringMap);
 
-    // データ型を表すkeywordの書き込み
+    // [create syntax tree]データ型を表すkeywordの書き込み
     var secondLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(subroutine, secondLine);
 
-    // メソッド、ファンクション、コンストラクタ名identifierの書き込み
+    // [create syntax tree]メソッド、ファンクション、コンストラクタ名identifierの書き込み
     var thirdLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(subroutine, thirdLine);
 
-    // symbol「(」の書き込み
+    // [create syntax tree]symbol「(」の書き込み
     var forthLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(subroutine, forthLine);
 
     compileParameterList(subroutineSymbolTable, subroutine);
 
-    // symbol「)」の書き込み
+    // [create syntax tree]symbol「)」の書き込み
     var fifthLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(subroutine, fifthLine);
 
-    // 「{ statements }」の書き込み
+    // [create syntax tree]「{ statements }」の書き込み
     compileSubroutineBody(subroutineSymbolTable, subroutine);
+
+    // TODO VMWriterを使っての 関数定義コマンドとstringBufferの書き込み
+    /*
+    vmWriter.writeFunction(thirdLine.get(CONTENT), subroutineSymbolTable.varCount(IdentifierAttr.VAR));
+    vmWriter.write(stringBuffer);
+     */
   }
 
   private void compileSubroutineBody(SymbolTable subroutineSymbolTable, Element subroutine)

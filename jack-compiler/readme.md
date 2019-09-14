@@ -7,6 +7,9 @@
 
 ## compileSubroutine()
 - 関数を定義。 fucntion [Class.subroutine] [number_of_local_variables]
+    - local変数の個数は、サブルーチン内の処理が全て明らかにならないとわかりようがないので、最後にまとめて書き込みを行う。
+
+## 
 
 # VMコマンド
 ## 算術コマンド
