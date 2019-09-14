@@ -38,6 +38,9 @@ public class CompilationEngine implements AutoCloseable {
 
   private File outputFile;
 
+  /** コンパイル対象のクラスの名前 */
+  private String compiledClassName;
+
   /** 生成するVMファイルの親ディレクトリを表すファイルオブジェクト */
   private File parentPath;
 
@@ -103,6 +106,7 @@ public class CompilationEngine implements AutoCloseable {
     // クラス名となるidentifierの書き込み。クラス名はシンボルテーブルに記録しない。
     var secondLine = parseXMLLine(this.reader.readLine());
     writeIdentifierForSymbolTable(klass, secondLine, "class", "defined", "not applicable", 0);
+    this.compiledClassName = secondLine.get(CONTENT);
 
     // VMWriterの生成
     try (var vmWriter = new VMWriter(new File(parentPath, secondLine.get(CONTENT) + ".vm"))) {
@@ -234,12 +238,14 @@ public class CompilationEngine implements AutoCloseable {
     }
   }
 
+  // TODO 次回はsubroutineのコンパイル処理を書くところから。シンボルテーブルへの定義部分は実装済。
+  //
   /** メソッド、ファンクション、コンストラクタをコンパイルする。 */
   public void compileSubroutine(Element subroutine, Map<String, String> stringMap)
       throws IOException {
     // サブルーチンスコープのシンボルテーブルを作成
     var subroutineSymbolTable = new SymbolTable();
-    subroutineSymbolTable.startSubroutine(); // 何もしていない。
+    subroutineSymbolTable.startSubroutine();
 
     // keyword "function", "constructor", "method"の書き込み
     appendChildIncludeText(subroutine, stringMap);
@@ -248,7 +254,7 @@ public class CompilationEngine implements AutoCloseable {
     var secondLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(subroutine, secondLine);
 
-    // メソッド、ファンクション、コンストラクタを表すidentifierの書き込み
+    // メソッド、ファンクション、コンストラクタ名identifierの書き込み
     var thirdLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(subroutine, thirdLine);
 
@@ -817,7 +823,6 @@ public class CompilationEngine implements AutoCloseable {
 
   /**
    * ソースコードに出てきた識別子に追加の情報を付与したのち、XML要素"identifier"に詰める。<br>
-   * TODO シンボルテーブル使うようになれば不要。
    *
    * <ul>
    *   <li>識別子のカテゴリ
