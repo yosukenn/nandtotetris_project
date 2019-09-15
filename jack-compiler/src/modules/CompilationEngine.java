@@ -11,19 +11,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerConfigurationException;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
 import modules.data.IdentifierAttr;
 import modules.data.Segment;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
 
 /*
 TODO 修正できる点（多分やらないけど）
@@ -37,12 +26,6 @@ TODO 修正できる点（多分やらないけど）
 public class CompilationEngine implements AutoCloseable {
 
   BufferedReader reader;
-
-  // XML文書作成例 https://teratail.com/questions/13471
-  DocumentBuilder documentBuilder = null;
-  Document document;
-
-  private File outputFile;
 
   /** コンパイル対象のクラスの名前 */
   private String compiledClassName;
@@ -74,25 +57,11 @@ public class CompilationEngine implements AutoCloseable {
     if (!firstLine.equals("<tokens>")) {
       throw new IllegalArgumentException("入力ファイルの形式が正しくありません。firstLine=" + firstLine);
     }
-
-    try {
-      this.documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-    } catch (ParserConfigurationException e) {
-      System.out.println("Document生成に失敗しました。");
-      e.printStackTrace();
-    }
-    document = documentBuilder.newDocument();
-    document.setXmlStandalone(true);
-
-    this.outputFile = new File(outputFile);
   }
 
   @Override
   public void close() throws IOException {
     this.reader.close();
-
-    // 最後に構文木をXML形式での生成する。
-    createXMLFile(this.outputFile, this.document);
   }
 
   public void compileClass() throws IOException {
@@ -105,27 +74,17 @@ public class CompilationEngine implements AutoCloseable {
     }
 
     // [create syntax tree]classの書き込み
-    var klass = document.createElement("class");
-    document.appendChild(klass);
 
     // [create syntax tree]keyword"class"の書き込み
-    Element keyword = document.createElement(firstLine.get(ELEMENT_TYPE));
-    klass.appendChild(keyword);
-    keyword.appendChild(document.createTextNode(firstLine.get(ENCLOSED_CONTENT)));
 
     // [create syntax tree]クラス名となるidentifierの書き込み。クラス名はシンボルテーブルに記録しない。
     var secondLine = parseXMLLine(this.reader.readLine());
-    writeIdentifierForSymbolTable(klass, secondLine, "class", "defined", "not applicable", 0);
     this.compiledClassName = secondLine.get(CONTENT);
 
     // VMWriterの生成
-    this.compiledClassName = secondLine.get(CONTENT);
     try (var vmWriter = new VMWriter(new File(parentPath, compiledClassName + ".vm"))) {
       // symbol"{"の書き込み
       var thirdLine = parseXMLLine(this.reader.readLine());
-      Element symbol = document.createElement(thirdLine.get(ELEMENT_TYPE));
-      klass.appendChild(symbol);
-      symbol.appendChild(document.createTextNode(thirdLine.get(ENCLOSED_CONTENT)));
 
       // [create syntax tree]xml要素の種類によって適切な処理を呼び出す。
       while (true) {
@@ -133,25 +92,16 @@ public class CompilationEngine implements AutoCloseable {
         switch (forthLine.get(CONTENT)) {
           case STATIC_KEYWORD:
           case FIELD_KEYWORD:
-            Element classVarDec = document.createElement("classVarDec");
-            klass.appendChild(classVarDec);
-            compileClassVarDec(classSymbolTable, classVarDec, forthLine);
+            compileClassVarDec(classSymbolTable, forthLine);
             continue;
           case FUNCTION_KEYWORD:
           case CONSTRUCTOR_KEYWORD:
           case METHOD_KEYWORD:
-            Element subroutineDec = document.createElement("subroutineDec");
-            klass.appendChild(subroutineDec);
-            compileSubroutine(subroutineDec, forthLine, vmWriter);
+            compileSubroutine(forthLine, vmWriter);
             continue;
         }
         break;
       }
-      // 最後にsymbol"}"を出力 TODO 過剰に読み取っていて"}"を出力できていないので、一旦無理やり出力している。
-      //    var fifthLine = parseXMLLine(this.reader.readLine());
-      //    appendChildIncludeText(klass, fifthLine);
-      appendChildIncludeText(
-          klass, Map.of(ELEMENT_TYPE, "symbol", CONTENT, "}", ENCLOSED_CONTENT, " } "));
     }
   }
 
@@ -192,25 +142,15 @@ public class CompilationEngine implements AutoCloseable {
   }
 
   /** スタティック宣言、フィールド宣言をコンパイルする。 */
-  public void compileClassVarDec(
-      SymbolTable classSymbolTable, Element classVarDec, Map<String, String> stringMap)
+  public void compileClassVarDec(SymbolTable classSymbolTable, Map<String, String> stringMap)
       throws IOException {
     // [create syntax tree]keyword "static", "field"の書き込み
-    appendChildIncludeText(classVarDec, stringMap);
 
     // [create syntax tree]データ型を表すkeywordの書き込み
     var secondLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(classVarDec, secondLine);
 
     // [create syntax tree]変数名を表すidentifierの書き込み
     var thirdLine = parseXMLLine(this.reader.readLine());
-    writeIdentifierForSymbolTable(
-        classVarDec,
-        thirdLine,
-        stringMap.get(CONTENT),
-        "defined",
-        stringMap.get(CONTENT),
-        0 /* indexは一旦一律0にする */);
 
     // identifierのシンボルテーブルへの登録。
     classSymbolTable.define(
@@ -222,20 +162,11 @@ public class CompilationEngine implements AutoCloseable {
     while (true) {
       if (forthLine.get(CONTENT).equals(";")) {
         // [create syntax tree]symbol";"の書き込み
-        appendChildIncludeText(classVarDec, forthLine);
         break;
       } else if (forthLine.get(CONTENT).equals(",")) { // ","で区切られて複数の変数を宣言している場合
-        appendChildIncludeText(classVarDec, forthLine);
 
         // [create syntax tree]変数名を表すidentifierの書き込み
         var fifthLine = parseXMLLine(this.reader.readLine());
-        writeIdentifierForSymbolTable(
-            classVarDec,
-            fifthLine,
-            stringMap.get(CONTENT),
-            "defined",
-            stringMap.get(CONTENT),
-            0 /* indexは一旦一律0にする */);
 
         // [create syntax tree]identifierのシンボルテーブルへの登録。
         classSymbolTable.define(
@@ -250,35 +181,30 @@ public class CompilationEngine implements AutoCloseable {
   }
 
   /** メソッド、ファンクション、コンストラクタをコンパイルする。 */
-  public void compileSubroutine(
-      Element subroutine, Map<String, String> stringMap, VMWriter vmWriter) throws IOException {
+  public void compileSubroutine(Map<String, String> stringMap, VMWriter vmWriter)
+      throws IOException {
     // サブルーチンスコープのシンボルテーブルを作成
     var subroutineSymbolTable = new SymbolTable();
     subroutineSymbolTable.startSubroutine(compiledClassName);
 
     // [create syntax tree]keyword "function", "constructor", "method"の書き込み
-    appendChildIncludeText(subroutine, stringMap);
 
     // [create syntax tree]データ型を表すkeywordの書き込み
     var secondLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(subroutine, secondLine);
 
     // [create syntax tree]メソッド、ファンクション、コンストラクタ名identifierの書き込み
     var thirdLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(subroutine, thirdLine);
 
     // [create syntax tree]symbol「(」の書き込み
     var forthLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(subroutine, forthLine);
 
-    compileParameterList(subroutineSymbolTable, subroutine);
+    compileParameterList(subroutineSymbolTable);
 
     // [create syntax tree]symbol「)」の書き込み
     var fifthLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(subroutine, fifthLine);
 
     // [create syntax tree]「{ statements }」の書き込み
-    compileSubroutineBody(subroutineSymbolTable, subroutine, vmWriter);
+    compileSubroutineBody(subroutineSymbolTable, vmWriter);
 
     // VMWriterを使っての関数定義コマンドとstringBufferの書き込み
     vmWriter.writeFunction(
@@ -286,53 +212,38 @@ public class CompilationEngine implements AutoCloseable {
     vmWriter.writeStringBuffer();
   }
 
-  private void compileSubroutineBody(
-      SymbolTable subroutineSymbolTable, Element subroutine, VMWriter vmWriter) throws IOException {
-    Element subroutineBody = document.createElement("subroutineBody");
-    subroutine.appendChild(subroutineBody);
+  private void compileSubroutineBody(SymbolTable subroutineSymbolTable, VMWriter vmWriter)
+      throws IOException {
 
     // symbol「{」の書き込み
     var firstLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(subroutineBody, firstLine);
 
     while (true) {
       var secondLine = parseXMLLine(this.reader.readLine());
       if (secondLine
           .get(CONTENT)
           .equals("var")) { // TODO { subroutineBody } の冒頭でvar宣言がされることを前提としているコードなので欠陥がある。
-        compileVarDec(subroutineSymbolTable, subroutineBody, secondLine);
+        compileVarDec(subroutineSymbolTable, secondLine);
       } else {
-        compileStatements(subroutineSymbolTable, subroutineBody, secondLine, vmWriter);
+        compileStatements(subroutineSymbolTable, secondLine, vmWriter);
         break;
       }
     }
 
     // symbol「}」の書き込み
     var thirdLine = Map.of(ELEMENT_TYPE, "symbol", CONTENT, "}", ENCLOSED_CONTENT, " } ");
-    appendChildIncludeText(subroutineBody, thirdLine);
   }
 
-  public void compileParameterList(SymbolTable subroutineSymbolTable, Element subroutine)
-      throws IOException {
-    Element parameterList = document.createElement("parameterList");
-    subroutine.appendChild(parameterList);
+  public void compileParameterList(SymbolTable subroutineSymbolTable) throws IOException {
 
     this.reader.mark(100);
     var firstLine = parseXMLLine(this.reader.readLine());
     if (firstLine.get(ELEMENT_TYPE).equals("keyword")) {
       while (true) {
         // keyword(引数の型)を構文木に書き込む
-        appendChildIncludeText(parameterList, firstLine);
 
         // identifier(引数の変数名)を構文木に書き込む
         var secondLine = parseXMLLine(this.reader.readLine());
-        writeIdentifierForSymbolTable(
-            parameterList,
-            secondLine,
-            "argument",
-            "defined",
-            "argument",
-            0 /* 実行番号はシンボルテーブルを使うようになってから管理するので、一旦一律0にする。 */);
 
         // identifierをシンボルテーブルに登録する。
         subroutineSymbolTable.define(
@@ -342,7 +253,6 @@ public class CompilationEngine implements AutoCloseable {
         this.reader.mark(100);
         var thirdLine = parseXMLLine(this.reader.readLine());
         if (thirdLine.get(CONTENT).equals(",")) {
-          appendChildIncludeText(parameterList, thirdLine);
           firstLine = parseXMLLine(this.reader.readLine());
         } else if (thirdLine.get(CONTENT).equals(")")) {
           this.reader.reset();
@@ -358,17 +268,11 @@ public class CompilationEngine implements AutoCloseable {
    * 一連の文をコンパイルする。<br>
    * var宣言は含まない。
    *
-   * @param subroutineBody
    * @throws IOException
    */
   public void compileStatements(
-      SymbolTable subroutineSymbolTable,
-      Element subroutineBody,
-      Map<String, String> firstLine,
-      VMWriter vmWriter)
+      SymbolTable subroutineSymbolTable, Map<String, String> firstLine, VMWriter vmWriter)
       throws IOException {
-    Element statements = document.createElement("statements");
-    subroutineBody.appendChild(statements);
 
     int returnFlg = 0;
 
@@ -376,20 +280,20 @@ public class CompilationEngine implements AutoCloseable {
     while (true) {
       switch (line.get(CONTENT)) {
         case "do":
-          compileDo(subroutineSymbolTable, statements, line, vmWriter);
+          compileDo(subroutineSymbolTable, line, vmWriter);
           break;
         case "let":
-          compileLet(subroutineSymbolTable, statements, line);
+          compileLet(subroutineSymbolTable, line, vmWriter);
           break;
         case "while":
-          compileWhile(subroutineSymbolTable, statements, line, vmWriter);
+          compileWhile(subroutineSymbolTable, line, vmWriter);
           break;
         case "return":
-          compileReturn(subroutineSymbolTable, statements, line);
+          compileReturn(subroutineSymbolTable, line, vmWriter);
           returnFlg = 1;
           break;
         case "if":
-          compileIf(subroutineSymbolTable, statements, line, vmWriter);
+          compileIf(subroutineSymbolTable, line, vmWriter);
           break;
       }
       var readLine = this.reader.readLine();
@@ -405,22 +309,16 @@ public class CompilationEngine implements AutoCloseable {
   }
 
   /** サブルーチン内のローカル変数宣言をコンパイルする。 */
-  public void compileVarDec(
-      SymbolTable subroutineSymbolTable, Element subroutineBody, Map<String, String> firstLine)
+  public void compileVarDec(SymbolTable subroutineSymbolTable, Map<String, String> firstLine)
       throws IOException {
-    Element varDec = document.createElement("varDec");
-    subroutineBody.appendChild(varDec);
 
     // keyword「var」の出力
-    appendChildIncludeText(varDec, firstLine);
 
     // keyword dataType の出力
     var secondLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(varDec, secondLine);
 
     // identifierの出力
     var thirdLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(varDec, thirdLine);
 
     // シンボルテーブルへの登録
     subroutineSymbolTable.define(
@@ -431,14 +329,11 @@ public class CompilationEngine implements AutoCloseable {
     while (true) {
       if (forthLine.get(CONTENT).equals(";")) {
         // symbol「;」の書き込み
-        appendChildIncludeText(varDec, forthLine);
         break;
       } else if (forthLine.get(CONTENT).equals(",")) {
-        appendChildIncludeText(varDec, forthLine);
 
         // 変数名を表すidentifier の書き込み
         var fifthLine = parseXMLLine(this.reader.readLine());
-        appendChildIncludeText(varDec, fifthLine);
 
         // シンボルテーブルへの登録
         subroutineSymbolTable.define(
@@ -451,51 +346,33 @@ public class CompilationEngine implements AutoCloseable {
   }
 
   public void compileDo(
-      SymbolTable subroutineSymbolTable,
-      Element subroutineBody,
-      Map<String, String> firstLine,
-      VMWriter vmWriter)
+      SymbolTable subroutineSymbolTable, Map<String, String> firstLine, VMWriter vmWriter)
       throws IOException {
-    Element doStatement = document.createElement("doStatement");
-    subroutineBody.appendChild(doStatement);
 
     // keyword「do」の出力
-    appendChildIncludeText(doStatement, firstLine);
 
     // identifier 変数名 or メソッド名 の出力
     var secondLine = parseXMLLine(this.reader.readLine());
-    writeIdentifierForSymbolTable(
-        doStatement,
-        secondLine,
-        "class or subroutine",
-        "used",
-        "class_name or subroutine_name",
-        0 /* 暫定的に0 */);
 
     var numOfArgs = 0; // 呼び出し先の関数の引数の数
 
     var thirdLine = parseXMLLine(this.reader.readLine());
     if (thirdLine.get(CONTENT).equals(".")) {
       // symbol「.」の出力
-      appendChildIncludeText(doStatement, thirdLine);
 
       // identifierの出力
       var forthLine = parseXMLLine(this.reader.readLine());
-      appendChildIncludeText(doStatement, forthLine);
 
       // symbol「(」の出力
       var fifthLine = parseXMLLine(this.reader.readLine());
-      appendChildIncludeText(doStatement, fifthLine);
 
-      numOfArgs = compileExpressionList(subroutineSymbolTable, doStatement, vmWriter);
+      numOfArgs = compileExpressionList(subroutineSymbolTable, vmWriter);
 
       // symbol「)」の出力
       var sixthLine = parseXMLLine(this.reader.readLine());
-      appendChildIncludeText(doStatement, sixthLine);
 
       // symbol";"の出力
       var seventhLine = parseXMLLine(this.reader.readLine());
-      appendChildIncludeText(doStatement, seventhLine);
 
       vmWriter.bufferCallCommand(
           secondLine.get(CONTENT) + thirdLine.get(CONTENT) + forthLine.get(CONTENT), numOfArgs);
@@ -503,178 +380,134 @@ public class CompilationEngine implements AutoCloseable {
     } else if (thirdLine.get(CONTENT).equals("(")) {
       // メソッドの実行主体が書かれていない場合の処理(privateメソッド)
 
-      appendChildIncludeText(doStatement, thirdLine);
-
-      numOfArgs = compileExpressionList(subroutineSymbolTable, doStatement, vmWriter);
+      numOfArgs = compileExpressionList(subroutineSymbolTable, vmWriter);
 
       // symbol「)」の出力
       var forthLine = parseXMLLine(this.reader.readLine());
-      appendChildIncludeText(doStatement, forthLine);
 
       // symbol「;」の出力
       var fifthLine = parseXMLLine(this.reader.readLine());
-      appendChildIncludeText(doStatement, fifthLine);
 
       vmWriter.bufferCallCommand(compiledClassName + "." + secondLine.get(CONTENT), numOfArgs);
     }
   }
 
   public void compileLet(
-      SymbolTable subroutineSymbolTable, Element subroutineBody, Map<String, String> firstLine)
+      SymbolTable subroutineSymbolTable, Map<String, String> firstLine, VMWriter vmWriter)
       throws IOException {
-    Element letStatement = document.createElement("letStatement");
-    subroutineBody.appendChild(letStatement);
 
     // keyword"let"のコンパイル
-    appendChildIncludeText(letStatement, firstLine);
 
     // identifierの出力
     var secondLine = parseXMLLine(this.reader.readLine());
-    writeIdentifierForSymbolTable(
-        letStatement, secondLine, "static or field", "used", "static or field", 0 /* 暫定的に0 */);
 
     var thirdLine = parseXMLLine(this.reader.readLine());
     if (thirdLine.get(CONTENT).equals("[")) {
       // 配列宣言"[ iterator ]"部分のコンパイル
-      compileArrayIterator(subroutineSymbolTable, letStatement, thirdLine);
+      compileArrayIterator(subroutineSymbolTable, thirdLine, vmWriter);
 
       // symbol「=」のコンパイル
-      appendChildIncludeText(letStatement, parseXMLLine(this.reader.readLine()));
+      parseXMLLine(this.reader.readLine());
 
     } else {
       // symbol「=」の出力
-      appendChildIncludeText(letStatement, thirdLine);
     }
 
-    compileExpression(subroutineSymbolTable, letStatement);
+    compileExpression(subroutineSymbolTable, vmWriter);
 
     // symbol「;」の出力
     var forthLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(letStatement, forthLine);
   }
 
   public void compileWhile(
-      SymbolTable subroutineSymbolTable,
-      Element parent,
-      Map<String, String> firstLine,
-      VMWriter vmWriter)
+      SymbolTable subroutineSymbolTable, Map<String, String> firstLine, VMWriter vmWriter)
       throws IOException {
-    Element whileStatement = document.createElement("whileStatement");
-    parent.appendChild(whileStatement);
 
     // keyword"while"の書き込み
-    appendChildIncludeText(whileStatement, firstLine);
 
     // symbol"(" の書き込み
     var secondLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(whileStatement, secondLine);
 
-    compileExpression(subroutineSymbolTable, whileStatement);
+    compileExpression(subroutineSymbolTable, vmWriter);
 
     // symbol ")" の書き込み
     var thirdLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(whileStatement, thirdLine);
 
     // symbol「{」の書き込み
     var forthLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(whileStatement, forthLine);
 
     var fifthLine = parseXMLLine(this.reader.readLine());
-    compileStatements(subroutineSymbolTable, whileStatement, fifthLine, vmWriter);
+    compileStatements(subroutineSymbolTable, fifthLine, vmWriter);
 
     // TODO compileStatements()で行を読み込み過ぎているのを修正する必要があるが、これを修正すると崩壊するので無理やり"}"をコンパイルするようにしている。
-    // symbol「}」の書き込み
-    //    var sixthLine = parseXMLLine(this.reader.readLine());
-    //    appendChildIncludeText(whileStatement, sixthLine);
     var closeSymbolLine = Map.of(ELEMENT_TYPE, "symbol", CONTENT, "}", ENCLOSED_CONTENT, " } ");
-    appendChildIncludeText(whileStatement, closeSymbolLine);
   }
 
   public void compileReturn(
-      SymbolTable subroutineSymbolTable, Element parent, Map<String, String> firstLine)
+      SymbolTable subroutineSymbolTable, Map<String, String> firstLine, VMWriter vmWriter)
       throws IOException {
-    Element returnStatement = document.createElement("returnStatement");
-    parent.appendChild(returnStatement);
 
     // keyword"return"のコンパイル
-    appendChildIncludeText(returnStatement, firstLine);
 
     this.reader.mark(100);
     var secondLine = parseXMLLine(this.reader.readLine());
     if (secondLine.get(ELEMENT_TYPE).equals("identifier")
         || secondLine.get(ELEMENT_TYPE).equals("keyword")) {
       this.reader.reset();
-      compileExpression(subroutineSymbolTable, returnStatement);
+      compileExpression(subroutineSymbolTable, vmWriter);
 
       var forthLine = parseXMLLine(this.reader.readLine());
-      appendChildIncludeText(returnStatement, forthLine);
 
     } else if (secondLine.get(ELEMENT_TYPE).equals("symbol")) {
-      appendChildIncludeText(returnStatement, secondLine);
     }
   }
 
   public void compileIf(
-      SymbolTable subroutineSymbolTable,
-      Element parent,
-      Map<String, String> firstLine,
-      VMWriter vmWriter)
+      SymbolTable subroutineSymbolTable, Map<String, String> firstLine, VMWriter vmWriter)
       throws IOException {
-    Element ifStatement = document.createElement("ifStatement");
-    parent.appendChild(ifStatement);
 
     // keyword"if"のコンパイル
-    appendChildIncludeText(ifStatement, firstLine);
 
     // symbol"("のコンパイル
     var secondLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(ifStatement, secondLine);
 
     // if条件式のコンパイル
-    compileExpression(subroutineSymbolTable, ifStatement);
+    compileExpression(subroutineSymbolTable, vmWriter);
 
     // symbol")"のコンパイル
     var thirdLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(ifStatement, thirdLine);
 
     // symbol"{"のコンパイル
-    appendChildIncludeText(ifStatement, parseXMLLine(this.reader.readLine()));
 
     // statementsのコンパイル
     var forthLine = parseXMLLine(this.reader.readLine());
-    compileStatements(subroutineSymbolTable, ifStatement, forthLine, vmWriter);
+    compileStatements(subroutineSymbolTable, forthLine, vmWriter);
 
     // symbol"}"のコンパイル
     var fifthLine = Map.of(ELEMENT_TYPE, "symbol", CONTENT, "}", ENCLOSED_CONTENT, " } ");
-    appendChildIncludeText(ifStatement, fifthLine);
 
     this.reader.mark(100); // 取り消せるようにマーク
     var sixthLine = parseXMLLine(this.reader.readLine());
     if (sixthLine.get(CONTENT).equals("else")) {
       // keyword"else"のコンパイル
-      appendChildIncludeText(ifStatement, sixthLine);
 
       // symbol"{"のコンパイル
-      appendChildIncludeText(ifStatement, parseXMLLine(this.reader.readLine()));
+      this.reader.readLine();
 
       // statementsのコンパイル
-      compileStatements(
-          subroutineSymbolTable, ifStatement, parseXMLLine(this.reader.readLine()), vmWriter);
+      compileStatements(subroutineSymbolTable, parseXMLLine(this.reader.readLine()), vmWriter);
 
       // symbol"}"のコンパイル
       var seventhLine = Map.of(ELEMENT_TYPE, "symbol", CONTENT, "}", ENCLOSED_CONTENT, " } ");
-      appendChildIncludeText(ifStatement, seventhLine);
     } else {
       this.reader.reset(); // TODO 読み込んだ結果"else"がないIf文だった場合、ちゃんと読み込みを取り消せられているか確認。
     }
   }
 
-  public Map<String, String> compileExpression(SymbolTable subroutineSymbolTable, Element parent)
+  public Map<String, String> compileExpression(SymbolTable subroutineSymbolTable, VMWriter vmWriter)
       throws IOException {
-    Element expression = document.createElement("expression");
-    parent.appendChild(expression);
 
-    var resultMap = compileTerm(subroutineSymbolTable, expression);
+    var resultMap = compileTerm(subroutineSymbolTable, vmWriter);
 
     this.reader.mark(100);
     var nextEle = parseXMLLine(this.reader.readLine());
@@ -686,8 +519,7 @@ public class CompilationEngine implements AutoCloseable {
         || nextEle.get(CONTENT).equals("=")) {
       // TODO "|", "*", "/", "+"が複数回出てくる場合が出てきたら対応を追加する。
       // 複数の変数を代入する場合の場合
-      appendChildIncludeText(expression, nextEle);
-      compileTerm(subroutineSymbolTable, expression);
+      compileTerm(subroutineSymbolTable, vmWriter);
 
     } else {
       this.reader.reset();
@@ -695,24 +527,27 @@ public class CompilationEngine implements AutoCloseable {
 
     this.reader.mark(100);
     var secondLine = parseXMLLine(this.reader.readLine());
-    if (secondLine.get(CONTENT).equals("&lt;")) {
-      appendChildIncludeText(
-          expression, Map.of(ELEMENT_TYPE, "symbol", CONTENT, "<", ENCLOSED_CONTENT, " < "));
-      compileTerm(subroutineSymbolTable, expression);
+    if (secondLine.get(CONTENT).equals("&lt;")) { // 不等号
+      //      appendChildIncludeText(
+      //          expression, Map.of(ELEMENT_TYPE, "symbol", CONTENT, "<", ENCLOSED_CONTENT, " <
+      // "));
+      compileTerm(subroutineSymbolTable, vmWriter);
     } else if (secondLine.get(CONTENT).equals("&gt;")) {
-      appendChildIncludeText(
-          expression, Map.of(ELEMENT_TYPE, "symbol", CONTENT, ">", ENCLOSED_CONTENT, " > "));
-      compileTerm(subroutineSymbolTable, expression);
+      //      appendChildIncludeText(
+      //          expression, Map.of(ELEMENT_TYPE, "symbol", CONTENT, ">", ENCLOSED_CONTENT, " >
+      // "));
+      compileTerm(subroutineSymbolTable, vmWriter);
     } else {
       this.reader.reset();
     }
 
     this.reader.mark(100);
-    var thirdLine = parseXMLLine(this.reader.readLine());
+    var thirdLine = parseXMLLine(this.reader.readLine()); // and演算子
     if (thirdLine.get(CONTENT).equals("&amp;")) { // TODO "&"が複数出てくるパターン対策。
-      appendChildIncludeText(
-          expression, Map.of(ELEMENT_TYPE, "symbol", CONTENT, "&", ENCLOSED_CONTENT, " & "));
-      compileTerm(subroutineSymbolTable, expression);
+      //      appendChildIncludeText(
+      //          expression, Map.of(ELEMENT_TYPE, "symbol", CONTENT, "&", ENCLOSED_CONTENT, " &
+      // "));
+      compileTerm(subroutineSymbolTable, vmWriter);
     } else {
       this.reader.reset();
     }
@@ -721,70 +556,71 @@ public class CompilationEngine implements AutoCloseable {
   }
 
   /** 式(Expression)の一部分をコンパイルする */
-  public Map<String, String> compileTerm(SymbolTable subroutineSymbolTable, Element parent)
+  public Map<String, String> compileTerm(SymbolTable subroutineSymbolTable, VMWriter vmWriter)
       throws IOException {
-    Element term = document.createElement("term");
-    parent.appendChild(term);
+
+    Map<String, String> resultMap = new HashMap<>();
 
     var firstLine = parseXMLLine(this.reader.readLine());
     if (firstLine.get(ELEMENT_TYPE).equals("identifier")) {
-      // ----------------シンボルテーブルに定義されている変数-------------------
-      writeIdentifierForSymbolTable(
-          term,
-          firstLine,
-          "class or argument or static or field or subroutine",
-          "used",
-          "var or argument or static or field",
-          0 /* 暫定的に0 */);
+      // ---------------------シンボルテーブルに定義されている変数------------------------
+      resultMap =
+          Map.of(
+              SEGMENT,
+              subroutineSymbolTable
+                  .kindOf(firstLine.get(CONTENT))
+                  .getCode(), // TODO IdentifierAttrとSegmentは必ずしも一致しないので、多分ずれてくる。一旦保留。
+              EXPRESSION,
+              String.valueOf(subroutineSymbolTable.indexOf(firstLine.get(CONTENT))));
 
-      return Map.of(
-          SEGMENT,
-          subroutineSymbolTable
-              .kindOf(firstLine.get(CONTENT))
-              .getCode(), // TODO IdentifierAttrとSegmentは必ずしも一致しないので、多分ずれてくる。一旦保留。
-          EXPRESSION,
-          String.valueOf(subroutineSymbolTable.indexOf(firstLine.get(CONTENT))));
+      // ---------------------keyword "this"--------------------------------
+    } else if (firstLine.get(CONTENT).equals("this")) {
+
+      resultMap = Map.of(SEGMENT, ARG.getCode(), EXPRESSION, "0");
+
+    } else if (firstLine.get(ELEMENT_TYPE).equals("integerConstant")) {
+      // ---------------------定数：integerConstant---------------------------
+      resultMap = Map.of(SEGMENT, CONST.getCode(), EXPRESSION, firstLine.get(CONTENT));
+
+    } else if (firstLine.get(ELEMENT_TYPE).equals("stringConstant")) {
+      // ---------------------文字列：stringConstant---------------------------
+      // TODO どうする？一旦保留
 
     } else {
-      // ----------------keyword "this", "true", "false"-------------------
-      appendChildIncludeText(term, firstLine);
-      if (firstLine.get(CONTENT).equals("this")) {
-        return Map.of(SEGMENT, ARG.getCode(), EXPRESSION, "0");
-      } else {
-        // "true", "false"
-        var number = firstLine.get(CONTENT).equals("true") ? "1" : "0";
-        return Map.of(SEGMENT, CONST.getCode(), EXPRESSION, number);
-      }
+      // ---------------------"true", "false"---------------------------------
+      var number = firstLine.get(CONTENT).equals("true") ? "1" : "0";
+      resultMap = Map.of(SEGMENT, CONST.getCode(), EXPRESSION, number);
     }
 
     if (firstLine.get(CONTENT).equals("(")) {
       // "( sign variable )" をコンパイルする。
 
       // "sign variable"
-      compileExpression(subroutineSymbolTable, term);
+      compileExpression(subroutineSymbolTable, vmWriter);
 
       // ")"
       var secondLine = parseXMLLine(this.reader.readLine());
-      appendChildIncludeText(term, secondLine);
 
     } else if (firstLine.get(CONTENT).equals("-") || firstLine.get(CONTENT).equals("~")) {
       // 符号付き変数のコンパイル
-      compileTerm(subroutineSymbolTable, term);
+      compileTerm(subroutineSymbolTable, vmWriter);
 
     } else {
       this.reader.mark(100);
       var secondLine = parseXMLLine(this.reader.readLine());
       if (secondLine.get(CONTENT).equals(".")) {
         // サブルーチン呼び出し
-        compileCallSubroutine(term, secondLine);
+        compileCallSubroutine(subroutineSymbolTable, secondLine, vmWriter);
       } else if (secondLine.get(CONTENT).equals("[")) {
         // 配列宣言のコンパイル
-        compileArrayIterator(subroutineSymbolTable, term, secondLine);
+        compileArrayIterator(subroutineSymbolTable, secondLine, vmWriter);
 
       } else {
         this.reader.reset();
       }
     }
+
+    return resultMap;
   }
 
   /**
@@ -792,26 +628,22 @@ public class CompilationEngine implements AutoCloseable {
    *
    * @return コンマで区切られた引数の数
    */
-  public int compileExpressionList(
-      SymbolTable subroutineSymbolTable, Element subroutineBody, VMWriter vmWriter)
+  public int compileExpressionList(SymbolTable subroutineSymbolTable, VMWriter vmWriter)
       throws IOException {
     var expressionCount = 0; // 引数の数の初期化
 
-    Element expressionList = document.createElement("expressionList");
-    subroutineBody.appendChild(expressionList);
-
-    // TODO 作業中 関数呼び出しの前に引数をスタックにプッシュする
+    // TODO 作業中 関数呼び出しの前に引数をスタックにプッシュする。残りは論理式と算術式が引数として渡ってきたときの処理。
 
     while (true) {
       this.reader.mark(100);
       var line = parseXMLLine(this.reader.readLine());
 
-      /* -----------------引数あり----------------- */
+      /* -----------------------------------引数あり--------------------------------- */
       if (line.get(ELEMENT_TYPE).equals("keyword")) {
         // "this", "true", "false"
         this.reader.reset();
         expressionCount++;
-        var resultMap = compileExpression(subroutineSymbolTable, expressionList);
+        var resultMap = compileExpression(subroutineSymbolTable, vmWriter);
         vmWriter.bufferPushCommand(
             Segment.fromCode(resultMap.get(SEGMENT)), Integer.parseInt(resultMap.get(EXPRESSION)));
 
@@ -819,7 +651,7 @@ public class CompilationEngine implements AutoCloseable {
         // シンボルテーブルに登録されている変数
         this.reader.reset();
         expressionCount++;
-        var resultMap = compileExpression(subroutineSymbolTable, expressionList);
+        var resultMap = compileExpression(subroutineSymbolTable, vmWriter);
         vmWriter.bufferPushCommand(
             Segment.fromCode(resultMap.get(SEGMENT)), Integer.parseInt(resultMap.get(EXPRESSION)));
 
@@ -827,25 +659,26 @@ public class CompilationEngine implements AutoCloseable {
         // 定数
         this.reader.reset();
         expressionCount++;
-        compileExpression(subroutineSymbolTable, expressionList);
+        var resultMap = compileExpression(subroutineSymbolTable, vmWriter);
+        vmWriter.bufferPushCommand(
+            Segment.fromCode(resultMap.get(SEGMENT)), Integer.parseInt(resultMap.get(EXPRESSION)));
 
       } else if (line.get(ELEMENT_TYPE).equals("stringConstant")) {
         // 文字列 // TODO ?
         this.reader.reset();
         expressionCount++;
-        compileExpression(subroutineSymbolTable, expressionList);
+        compileExpression(subroutineSymbolTable, vmWriter);
 
       } else if (line.get(CONTENT).equals("(")) {
         // (1 + 2)などの式。
         this.reader.reset();
         expressionCount++;
-        compileExpression(subroutineSymbolTable, expressionList);
+        compileExpression(subroutineSymbolTable, vmWriter);
 
-        /* -----------------引数続く----------------- */
+        /* -----------------------------------引数がコンマ区切りで複数存在する場合--------------------------------- */
       } else if (line.get(CONTENT).equals(",")) {
-        appendChildIncludeText(expressionList, line);
 
-        /* -----------------引数リスト終わり----------------- */
+        /* -----------------------------------引数リスト終わり--------------------------------- */
       } else {
         this.reader.reset();
         break;
@@ -854,138 +687,39 @@ public class CompilationEngine implements AutoCloseable {
     return expressionCount;
   }
 
-  private static boolean createXMLFile(File file, Document document) {
-
-    // Transformerインスタンスの生成
-    Transformer transformer = null;
-    try {
-      TransformerFactory transformerFactory = TransformerFactory.newInstance();
-      transformer = transformerFactory.newTransformer();
-    } catch (TransformerConfigurationException e) {
-      e.printStackTrace();
-      return false;
-    }
-
-    // Transformerの設定
-    transformer.setOutputProperty("indent", "yes"); // 改行指定
-    transformer.setOutputProperty("encoding", "UTF-8"); // エンコーディング
-    transformer.setOutputProperty("{http://xml.apache.org/xalan}indent-amount", "2"); // インデントの桁指定
-    transformer.setOutputProperty("method", "html"); // XML宣言部分を省略
-
-    // XMLファイルの作成
-    try {
-      transformer.transform(new DOMSource(document), new StreamResult(file));
-    } catch (TransformerException e) {
-      e.printStackTrace();
-      return false;
-    }
-
-    return true;
-  }
-
   /**
    * サブルーチン呼び出し(do)の内、".( arguments... )"部分のコンパイルを行う。
    *
    * @return コンマで区切られた引数の数
    */
-  private int compileCallSubroutine(Element parent, Map<String, String> firstLine)
+  private int compileCallSubroutine(
+      SymbolTable subroutineSymbolTable, Map<String, String> firstLine, VMWriter vmWriter)
       throws IOException {
     // symbol「.」の出力
-    appendChildIncludeText(parent, firstLine);
 
     // identifierの出力
     var secondLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(parent, secondLine);
 
     // symbol「(」の出力
     var thirdLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(parent, thirdLine);
 
-    var numOfExpression = compileExpressionList(parent);
+    var numOfExpression = compileExpressionList(subroutineSymbolTable, vmWriter);
 
     // symbol「)」の出力
     var sixthLine = parseXMLLine(this.reader.readLine());
-    appendChildIncludeText(parent, sixthLine);
 
     return numOfExpression;
   }
 
-  /*
-       // 配列宣言"[ iterator ]"部分のコンパイル
-     compileArrayIterator(letStatement, thirdLine)
-
-     // symbol"["のコンパイル
-     appendChildIncludeText(letStatement, thirdLine);
-
-     // 配列イテレータのコンパイル
-     compileExpression(letStatement);
-
-     // symbol「]」のコンパイル
-     appendChildIncludeText(letStatement, parseXMLLine(this.reader.readLine()));
-  */
-
   private void compileArrayIterator(
-      SymbolTable subroutineSymbolTable, Element parent, Map<String, String> firstLine)
+      SymbolTable subroutineSymbolTable, Map<String, String> firstLine, VMWriter vmWriter)
       throws IOException {
     // symbol"["のコンパイル
-    appendChildIncludeText(parent, firstLine);
 
     // 配列イテレータのコンパイル
-    compileExpression(subroutineSymbolTable, parent);
+    compileExpression(subroutineSymbolTable, vmWriter);
 
     // symbol「]」のコンパイル
-    appendChildIncludeText(parent, parseXMLLine(this.reader.readLine()));
-  }
-
-  private void appendChildIncludeText(Element parent, Map<String, String> stringLine) {
-    Element element = document.createElement(stringLine.get(ELEMENT_TYPE));
-    parent.appendChild(element);
-    element.appendChild(document.createTextNode(stringLine.get(ENCLOSED_CONTENT)));
-  }
-
-  /**
-   * ソースコードに出てきた識別子に追加の情報を付与したのち、XML要素"identifier"に詰める。<br>
-   *
-   * <ul>
-   *   <li>識別子のカテゴリ
-   *   <li>識別子は定義されているか、使用されているか
-   *   <li>識別子の4つの属性(var, argument, static, field, not applicable)と、実行番号。
-   * </ul>
-   */
-  private void writeIdentifierForSymbolTable(
-      Element parent,
-      Map<String, String> contentMap,
-      String category,
-      String be,
-      String attribute,
-      int index) {
-
-    Element identifierEle = document.createElement(contentMap.get(ELEMENT_TYPE));
-    parent.appendChild(identifierEle);
-
-    // content element の作成とtextの設定
-    var contentEle = document.createElement("content");
-    identifierEle.appendChild(contentEle);
-    contentEle.appendChild(document.createTextNode(contentMap.get(ENCLOSED_CONTENT)));
-
-    // category element の作成とtextの設定
-    var categoryEle = document.createElement("category");
-    identifierEle.appendChild(categoryEle);
-    categoryEle.appendChild(document.createTextNode(category));
-
-    // be element の作成とtextの設定
-    var beEle = document.createElement("be");
-    identifierEle.appendChild(beEle);
-    beEle.appendChild(document.createTextNode(be));
-
-    // attribute element の作成とtextの設定
-    var attrEle = document.createElement("attribute");
-    identifierEle.appendChild(attrEle);
-    attrEle.appendChild(document.createTextNode(attribute));
-
-    // index element の作成とtextの設定
-    var indexEle = document.createElement("index");
-    identifierEle.appendChild(indexEle);
-    indexEle.appendChild(document.createTextNode(Integer.toString(index)));
+    this.reader.readLine();
   }
 }
