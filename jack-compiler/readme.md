@@ -9,7 +9,16 @@
 - 関数を定義。 fucntion [Class.subroutine] [number_of_local_variables]
     - local変数の個数は、サブルーチン内の処理が全て明らかにならないとわかりようがないので、最後にまとめて書き込みを行う。
 
-## 
+## compileParameterList()
+- サブルーチンスコープの引数をシンボルテーブルに登録する。
+
+## conpileVarDec()
+- local変数をサブルーチンスコープのシンボルテーブルに登録する。
+
+## compileStatements()
+
+## compileDo()
+- 関数呼び出し。 call f n : ①n個の引数がスタックにプッシュされた後に、②関数fを呼び出す。
 
 # VMコマンド
 ## 算術コマンド

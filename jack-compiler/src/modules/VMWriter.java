@@ -10,6 +10,8 @@ import modules.data.Segment;
 /** VMコマンドの構文に従い、VMコマンドをファイルへ書き出す。 */
 public class VMWriter extends BufferedWriter implements AutoCloseable {
 
+  private StringBuilder stringBuffer = new StringBuilder();
+
   /** 新しいファイルを作り、それに書き込む準備をする。 */
   public VMWriter(File file) throws IOException {
     super(new FileWriter(file, true)); // 上書きを許容する。
@@ -34,7 +36,9 @@ public class VMWriter extends BufferedWriter implements AutoCloseable {
   public void writeIf(String label) {}
 
   /** callコマンドを書く。 */
-  public void writeCall(String name, int nArgs) {}
+  public void bufferCall(String name, int nArgs) {
+    stringBuffer.append("call " + name + " " + nArgs + "\n");
+  }
 
   /** functionコマンドを書く。 */
   public void writeFunction(String name, int nLocals) {}
