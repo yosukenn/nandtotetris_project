@@ -20,7 +20,9 @@ public class SymbolTable {
    * 新しいサブルーチンのスコープを開始する。<br>
    * （つまり、サブルーチンのシンボルテーブルをリセットする。）
    */
-  public void startSubroutine() {}
+  public void startSubroutine(String type) {
+    define("this", type, ARG); // サブルーチンを呼び出したインスタンス自身を thisとしてシンボルテーブルに登録する。
+  }
 
   /**
    * 引数の名前、型、属性で指定された新しい識別子を定義し、それに実行インデックスを割り当てる。<br>
@@ -36,7 +38,11 @@ public class SymbolTable {
         symbol.setIndex(fieldIndex);
         fieldIndex++;
       case VAR:
+        symbol.setIndex(varIndex);
+        varIndex++;
       case ARG:
+        symbol.setIndex(argumentIndex);
+        argumentIndex++;
       case NONE:
     }
     table.add(symbol);

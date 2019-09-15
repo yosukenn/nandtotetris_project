@@ -18,7 +18,9 @@ public class VMWriter extends BufferedWriter implements AutoCloseable {
   }
 
   /** pushコマンドを書く。 */
-  public void writePush(Segment segment, int index) {}
+  public void bufferPushCommand(Segment segment, int index) {
+    stringBuffer.append("push " + segment.getCode() + " " + index + "\n");
+  }
 
   /** popコマンドを書く。 */
   public void writePop(Segment segment, int index) {}
@@ -36,15 +38,22 @@ public class VMWriter extends BufferedWriter implements AutoCloseable {
   public void writeIf(String label) {}
 
   /** callコマンドを書く。 */
-  public void bufferCall(String name, int nArgs) {
+  public void bufferCallCommand(String name, int nArgs) {
     stringBuffer.append("call " + name + " " + nArgs + "\n");
   }
 
   /** functionコマンドを書く。 */
-  public void writeFunction(String name, int nLocals) {}
+  public void writeFunction(String name, int nLocals) throws IOException {
+    write("function " + name + " " + nLocals + "\n");
+  }
 
   /** returnコマンドを書く。 */
   public void writeReturn() {}
+
+  /** string buffer に溜め込んだ文字列をvmファイルに書き込む。 */
+  public void writeStringBuffer() throws IOException {
+    write(stringBuffer.toString());
+  }
 
   /** 出力ファイルを閉じる。 */
   public void close() throws IOException {

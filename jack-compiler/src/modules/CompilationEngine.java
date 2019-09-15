@@ -1,10 +1,12 @@
 package modules;
 
+import static modules.data.Segment.ARG;
+import static modules.data.Segment.CONST;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -19,6 +21,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import modules.data.IdentifierAttr;
+import modules.data.Segment;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -58,6 +61,10 @@ public class CompilationEngine implements AutoCloseable {
   private static final String FUNCTION_KEYWORD = "function";
   private static final String CONSTRUCTOR_KEYWORD = "constructor";
   private static final String METHOD_KEYWORD = "method";
+
+  // VMコマンド用定数
+  private static final String SEGMENT = "segment";
+  private static final String EXPRESSION = "expression";
 
   public CompilationEngine(File parentDir, String inputFile, String outputFile) throws IOException {
     this.parentPath = parentDir;
@@ -247,7 +254,7 @@ public class CompilationEngine implements AutoCloseable {
       Element subroutine, Map<String, String> stringMap, VMWriter vmWriter) throws IOException {
     // サブルーチンスコープのシンボルテーブルを作成
     var subroutineSymbolTable = new SymbolTable();
-    subroutineSymbolTable.startSubroutine();
+    subroutineSymbolTable.startSubroutine(compiledClassName);
 
     // [create syntax tree]keyword "function", "constructor", "method"の書き込み
     appendChildIncludeText(subroutine, stringMap);
@@ -273,11 +280,10 @@ public class CompilationEngine implements AutoCloseable {
     // [create syntax tree]「{ statements }」の書き込み
     compileSubroutineBody(subroutineSymbolTable, subroutine, vmWriter);
 
-    // TODO VMWriterを使っての 関数定義コマンドとstringBufferの書き込み
-    /*
-    vmWriter.writeFunction(thirdLine.get(CONTENT), subroutineSymbolTable.varCount(IdentifierAttr.VAR));
-    vmWriter.write(stringBuffer);
-     */
+    // VMWriterを使っての関数定義コマンドとstringBufferの書き込み
+    vmWriter.writeFunction(
+        thirdLine.get(CONTENT), subroutineSymbolTable.varCount(IdentifierAttr.VAR));
+    vmWriter.writeStringBuffer();
   }
 
   private void compileSubroutineBody(
@@ -481,7 +487,7 @@ public class CompilationEngine implements AutoCloseable {
       var fifthLine = parseXMLLine(this.reader.readLine());
       appendChildIncludeText(doStatement, fifthLine);
 
-      numOfArgs = compileExpressionList(doStatement);
+      numOfArgs = compileExpressionList(doStatement, vmWriter);
 
       // symbol「)」の出力
       var sixthLine = parseXMLLine(this.reader.readLine());
@@ -491,7 +497,7 @@ public class CompilationEngine implements AutoCloseable {
       var seventhLine = parseXMLLine(this.reader.readLine());
       appendChildIncludeText(doStatement, seventhLine);
 
-      vmWriter.bufferCall(
+      vmWriter.bufferCallCommand(
           secondLine.get(CONTENT) + thirdLine.get(CONTENT) + forthLine.get(CONTENT), numOfArgs);
 
     } else if (thirdLine.get(CONTENT).equals("(")) {
@@ -509,7 +515,7 @@ public class CompilationEngine implements AutoCloseable {
       var fifthLine = parseXMLLine(this.reader.readLine());
       appendChildIncludeText(doStatement, fifthLine);
 
-      vmWriter.bufferCall(compiledClassName + "." + secondLine.get(CONTENT), numOfArgs);
+      vmWriter.bufferCallCommand(compiledClassName + "." + secondLine.get(CONTENT), numOfArgs);
     }
   }
 
@@ -661,11 +667,11 @@ public class CompilationEngine implements AutoCloseable {
     }
   }
 
-  public void compileExpression(Element parent) throws IOException {
+  public Map<String, String> compileExpression(Element parent) throws IOException {
     Element expression = document.createElement("expression");
     parent.appendChild(expression);
 
-    compileTerm(expression);
+    var resultMap = compileTerm(expression);
 
     this.reader.mark(100);
     var nextEle = parseXMLLine(this.reader.readLine());
@@ -707,15 +713,17 @@ public class CompilationEngine implements AutoCloseable {
     } else {
       this.reader.reset();
     }
+
+    return resultMap;
   }
 
   /** 式(Expression)の一部分をコンパイルする */
-  public void compileTerm(Element parent) throws IOException {
+  public Map<String, String> compileTerm(Element parent) throws IOException {
     Element term = document.createElement("term");
     parent.appendChild(term);
 
     var firstLine = parseXMLLine(this.reader.readLine());
-    if (firstLine.get(ELEMENT_TYPE).equals("identifier")) { // TODO シンボルテーブルを使うようになれば不要。
+    if (firstLine.get(ELEMENT_TYPE).equals("identifier")) {
       // class_name or valiable
       writeIdentifierForSymbolTable(
           term,
@@ -725,7 +733,15 @@ public class CompilationEngine implements AutoCloseable {
           "var or argument or static or field",
           0 /* 暫定的に0 */);
     } else {
+      // ----------------keyword "this", "true", "false"-------------------
       appendChildIncludeText(term, firstLine);
+      if (firstLine.get(CONTENT).equals("this")) {
+        return Map.of(SEGMENT, ARG.getCode(), EXPRESSION, "0");
+      } else {
+        // "true", "false"
+        var number = firstLine.get(CONTENT).equals("true") ? "1" : "0";
+        return Map.of(SEGMENT, CONST.getCode(), EXPRESSION, number);
+      }
     }
 
     if (firstLine.get(CONTENT).equals("(")) {
@@ -763,25 +779,56 @@ public class CompilationEngine implements AutoCloseable {
    *
    * @return コンマで区切られた引数の数
    */
-  public int compileExpressionList(Element subroutineBody) throws IOException {
+  public int compileExpressionList(Element subroutineBody, VMWriter vmWriter) throws IOException {
     var expressionCount = 0; // 引数の数の初期化
 
     Element expressionList = document.createElement("expressionList");
     subroutineBody.appendChild(expressionList);
 
+    // TODO 作業中 関数呼び出しの前に引数をスタックにプッシュする
+
     while (true) {
       this.reader.mark(100);
       var line = parseXMLLine(this.reader.readLine());
-      if (line.get(ELEMENT_TYPE).equals("keyword")
-          || line.get(ELEMENT_TYPE).equals("identifier")
-          || line.get(ELEMENT_TYPE).equals("integerConstant")
-          || line.get(ELEMENT_TYPE).equals("stringConstant")
-          || line.get(CONTENT).equals("(")) {
+
+      /* -----------------引数あり----------------- */
+      if (line.get(ELEMENT_TYPE).equals("keyword")) {
+        // "this", "true", "false"
+        this.reader.reset();
+        expressionCount++;
+        var resultMap = compileExpression(expressionList);
+        vmWriter.bufferPushCommand(
+            Segment.fromCode(resultMap.get(SEGMENT)), Integer.parseInt(resultMap.get(EXPRESSION)));
+
+      } else if (line.get(ELEMENT_TYPE).equals("identifier")) {
+        // シンボルテーブルに登録されている変数
         this.reader.reset();
         expressionCount++;
         compileExpression(expressionList);
+
+      } else if (line.get(ELEMENT_TYPE).equals("integerConstant")) {
+        // 定数
+        this.reader.reset();
+        expressionCount++;
+        compileExpression(expressionList);
+
+      } else if (line.get(ELEMENT_TYPE).equals("stringConstant")) {
+        // 文字列 // TODO ?
+        this.reader.reset();
+        expressionCount++;
+        compileExpression(expressionList);
+
+      } else if (line.get(CONTENT).equals("(")) {
+        // (1 + 2)などの式。
+        this.reader.reset();
+        expressionCount++;
+        compileExpression(expressionList);
+
+        /* -----------------引数続く----------------- */
       } else if (line.get(CONTENT).equals(",")) {
         appendChildIncludeText(expressionList, line);
+
+        /* -----------------引数リスト終わり----------------- */
       } else {
         this.reader.reset();
         break;
