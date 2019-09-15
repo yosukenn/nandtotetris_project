@@ -5,11 +5,15 @@ import java.util.Arrays;
 public enum IdentifierAttr {
   STATIC("static"),
   FIELD("field"),
-  ARG("arg"),
+  ARG("argument"),
   VAR("var"),
   NONE(null);
 
   private String code;
+
+  public String getCode() {
+    return code;
+  }
 
   public static IdentifierAttr fromCode(String code) {
     IdentifierAttr[] attrs = values();

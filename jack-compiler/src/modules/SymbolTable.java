@@ -18,7 +18,8 @@ public class SymbolTable {
 
   /**
    * 新しいサブルーチンのスコープを開始する。<br>
-   * （つまり、サブルーチンのシンボルテーブルをリセットする。）
+   * （つまり、サブルーチンのシンボルテーブルをリセットする。）<br>
+   * TODO シンボルテーブルへの定義と同時に、セグメントへの書き込みも行わなければならないのでは。 シンボルテーブルのインデックスとセグメントのインデックスは必ずしも同値ではない。
    */
   public void startSubroutine(String type) {
     define("this", type, ARG); // サブルーチンを呼び出したインスタンス自身を thisとしてシンボルテーブルに登録する。
@@ -49,8 +50,8 @@ public class SymbolTable {
   }
 
   /** 引数で与えられた属性について、それが現在のスコープで定義されている数を返す。 */
-  public int varCount(IdentifierAttr kind) {
-    return 1; // 仮
+  public long varCount(IdentifierAttr kind) {
+    return table.stream().filter(identifier -> identifier.kind == kind).count();
   }
 
   /**

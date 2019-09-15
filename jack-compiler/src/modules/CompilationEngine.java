@@ -385,7 +385,7 @@ public class CompilationEngine implements AutoCloseable {
           compileWhile(subroutineSymbolTable, statements, line, vmWriter);
           break;
         case "return":
-          compileReturn(statements, line);
+          compileReturn(subroutineSymbolTable, statements, line);
           returnFlg = 1;
           break;
         case "if":
@@ -487,7 +487,7 @@ public class CompilationEngine implements AutoCloseable {
       var fifthLine = parseXMLLine(this.reader.readLine());
       appendChildIncludeText(doStatement, fifthLine);
 
-      numOfArgs = compileExpressionList(doStatement, vmWriter);
+      numOfArgs = compileExpressionList(subroutineSymbolTable, doStatement, vmWriter);
 
       // symbol「)」の出力
       var sixthLine = parseXMLLine(this.reader.readLine());
@@ -505,7 +505,7 @@ public class CompilationEngine implements AutoCloseable {
 
       appendChildIncludeText(doStatement, thirdLine);
 
-      numOfArgs = compileExpressionList(doStatement);
+      numOfArgs = compileExpressionList(subroutineSymbolTable, doStatement, vmWriter);
 
       // symbol「)」の出力
       var forthLine = parseXMLLine(this.reader.readLine());
@@ -536,7 +536,7 @@ public class CompilationEngine implements AutoCloseable {
     var thirdLine = parseXMLLine(this.reader.readLine());
     if (thirdLine.get(CONTENT).equals("[")) {
       // 配列宣言"[ iterator ]"部分のコンパイル
-      compileArrayIterator(letStatement, thirdLine);
+      compileArrayIterator(subroutineSymbolTable, letStatement, thirdLine);
 
       // symbol「=」のコンパイル
       appendChildIncludeText(letStatement, parseXMLLine(this.reader.readLine()));
@@ -546,7 +546,7 @@ public class CompilationEngine implements AutoCloseable {
       appendChildIncludeText(letStatement, thirdLine);
     }
 
-    compileExpression(letStatement);
+    compileExpression(subroutineSymbolTable, letStatement);
 
     // symbol「;」の出力
     var forthLine = parseXMLLine(this.reader.readLine());
@@ -569,7 +569,7 @@ public class CompilationEngine implements AutoCloseable {
     var secondLine = parseXMLLine(this.reader.readLine());
     appendChildIncludeText(whileStatement, secondLine);
 
-    compileExpression(whileStatement);
+    compileExpression(subroutineSymbolTable, whileStatement);
 
     // symbol ")" の書き込み
     var thirdLine = parseXMLLine(this.reader.readLine());
@@ -590,7 +590,9 @@ public class CompilationEngine implements AutoCloseable {
     appendChildIncludeText(whileStatement, closeSymbolLine);
   }
 
-  public void compileReturn(Element parent, Map<String, String> firstLine) throws IOException {
+  public void compileReturn(
+      SymbolTable subroutineSymbolTable, Element parent, Map<String, String> firstLine)
+      throws IOException {
     Element returnStatement = document.createElement("returnStatement");
     parent.appendChild(returnStatement);
 
@@ -602,7 +604,7 @@ public class CompilationEngine implements AutoCloseable {
     if (secondLine.get(ELEMENT_TYPE).equals("identifier")
         || secondLine.get(ELEMENT_TYPE).equals("keyword")) {
       this.reader.reset();
-      compileExpression(returnStatement);
+      compileExpression(subroutineSymbolTable, returnStatement);
 
       var forthLine = parseXMLLine(this.reader.readLine());
       appendChildIncludeText(returnStatement, forthLine);
@@ -629,7 +631,7 @@ public class CompilationEngine implements AutoCloseable {
     appendChildIncludeText(ifStatement, secondLine);
 
     // if条件式のコンパイル
-    compileExpression(ifStatement);
+    compileExpression(subroutineSymbolTable, ifStatement);
 
     // symbol")"のコンパイル
     var thirdLine = parseXMLLine(this.reader.readLine());
@@ -667,11 +669,12 @@ public class CompilationEngine implements AutoCloseable {
     }
   }
 
-  public Map<String, String> compileExpression(Element parent) throws IOException {
+  public Map<String, String> compileExpression(SymbolTable subroutineSymbolTable, Element parent)
+      throws IOException {
     Element expression = document.createElement("expression");
     parent.appendChild(expression);
 
-    var resultMap = compileTerm(expression);
+    var resultMap = compileTerm(subroutineSymbolTable, expression);
 
     this.reader.mark(100);
     var nextEle = parseXMLLine(this.reader.readLine());
@@ -684,7 +687,7 @@ public class CompilationEngine implements AutoCloseable {
       // TODO "|", "*", "/", "+"が複数回出てくる場合が出てきたら対応を追加する。
       // 複数の変数を代入する場合の場合
       appendChildIncludeText(expression, nextEle);
-      compileTerm(expression);
+      compileTerm(subroutineSymbolTable, expression);
 
     } else {
       this.reader.reset();
@@ -695,11 +698,11 @@ public class CompilationEngine implements AutoCloseable {
     if (secondLine.get(CONTENT).equals("&lt;")) {
       appendChildIncludeText(
           expression, Map.of(ELEMENT_TYPE, "symbol", CONTENT, "<", ENCLOSED_CONTENT, " < "));
-      compileTerm(expression);
+      compileTerm(subroutineSymbolTable, expression);
     } else if (secondLine.get(CONTENT).equals("&gt;")) {
       appendChildIncludeText(
           expression, Map.of(ELEMENT_TYPE, "symbol", CONTENT, ">", ENCLOSED_CONTENT, " > "));
-      compileTerm(expression);
+      compileTerm(subroutineSymbolTable, expression);
     } else {
       this.reader.reset();
     }
@@ -709,7 +712,7 @@ public class CompilationEngine implements AutoCloseable {
     if (thirdLine.get(CONTENT).equals("&amp;")) { // TODO "&"が複数出てくるパターン対策。
       appendChildIncludeText(
           expression, Map.of(ELEMENT_TYPE, "symbol", CONTENT, "&", ENCLOSED_CONTENT, " & "));
-      compileTerm(expression);
+      compileTerm(subroutineSymbolTable, expression);
     } else {
       this.reader.reset();
     }
@@ -718,13 +721,14 @@ public class CompilationEngine implements AutoCloseable {
   }
 
   /** 式(Expression)の一部分をコンパイルする */
-  public Map<String, String> compileTerm(Element parent) throws IOException {
+  public Map<String, String> compileTerm(SymbolTable subroutineSymbolTable, Element parent)
+      throws IOException {
     Element term = document.createElement("term");
     parent.appendChild(term);
 
     var firstLine = parseXMLLine(this.reader.readLine());
     if (firstLine.get(ELEMENT_TYPE).equals("identifier")) {
-      // class_name or valiable
+      // ----------------シンボルテーブルに定義されている変数-------------------
       writeIdentifierForSymbolTable(
           term,
           firstLine,
@@ -732,6 +736,15 @@ public class CompilationEngine implements AutoCloseable {
           "used",
           "var or argument or static or field",
           0 /* 暫定的に0 */);
+
+      return Map.of(
+          SEGMENT,
+          subroutineSymbolTable
+              .kindOf(firstLine.get(CONTENT))
+              .getCode(), // TODO IdentifierAttrとSegmentは必ずしも一致しないので、多分ずれてくる。一旦保留。
+          EXPRESSION,
+          String.valueOf(subroutineSymbolTable.indexOf(firstLine.get(CONTENT))));
+
     } else {
       // ----------------keyword "this", "true", "false"-------------------
       appendChildIncludeText(term, firstLine);
@@ -748,7 +761,7 @@ public class CompilationEngine implements AutoCloseable {
       // "( sign variable )" をコンパイルする。
 
       // "sign variable"
-      compileExpression(term);
+      compileExpression(subroutineSymbolTable, term);
 
       // ")"
       var secondLine = parseXMLLine(this.reader.readLine());
@@ -756,7 +769,7 @@ public class CompilationEngine implements AutoCloseable {
 
     } else if (firstLine.get(CONTENT).equals("-") || firstLine.get(CONTENT).equals("~")) {
       // 符号付き変数のコンパイル
-      compileTerm(term);
+      compileTerm(subroutineSymbolTable, term);
 
     } else {
       this.reader.mark(100);
@@ -766,7 +779,7 @@ public class CompilationEngine implements AutoCloseable {
         compileCallSubroutine(term, secondLine);
       } else if (secondLine.get(CONTENT).equals("[")) {
         // 配列宣言のコンパイル
-        compileArrayIterator(term, secondLine);
+        compileArrayIterator(subroutineSymbolTable, term, secondLine);
 
       } else {
         this.reader.reset();
@@ -779,7 +792,9 @@ public class CompilationEngine implements AutoCloseable {
    *
    * @return コンマで区切られた引数の数
    */
-  public int compileExpressionList(Element subroutineBody, VMWriter vmWriter) throws IOException {
+  public int compileExpressionList(
+      SymbolTable subroutineSymbolTable, Element subroutineBody, VMWriter vmWriter)
+      throws IOException {
     var expressionCount = 0; // 引数の数の初期化
 
     Element expressionList = document.createElement("expressionList");
@@ -796,7 +811,7 @@ public class CompilationEngine implements AutoCloseable {
         // "this", "true", "false"
         this.reader.reset();
         expressionCount++;
-        var resultMap = compileExpression(expressionList);
+        var resultMap = compileExpression(subroutineSymbolTable, expressionList);
         vmWriter.bufferPushCommand(
             Segment.fromCode(resultMap.get(SEGMENT)), Integer.parseInt(resultMap.get(EXPRESSION)));
 
@@ -804,25 +819,27 @@ public class CompilationEngine implements AutoCloseable {
         // シンボルテーブルに登録されている変数
         this.reader.reset();
         expressionCount++;
-        compileExpression(expressionList);
+        var resultMap = compileExpression(subroutineSymbolTable, expressionList);
+        vmWriter.bufferPushCommand(
+            Segment.fromCode(resultMap.get(SEGMENT)), Integer.parseInt(resultMap.get(EXPRESSION)));
 
       } else if (line.get(ELEMENT_TYPE).equals("integerConstant")) {
         // 定数
         this.reader.reset();
         expressionCount++;
-        compileExpression(expressionList);
+        compileExpression(subroutineSymbolTable, expressionList);
 
       } else if (line.get(ELEMENT_TYPE).equals("stringConstant")) {
         // 文字列 // TODO ?
         this.reader.reset();
         expressionCount++;
-        compileExpression(expressionList);
+        compileExpression(subroutineSymbolTable, expressionList);
 
       } else if (line.get(CONTENT).equals("(")) {
         // (1 + 2)などの式。
         this.reader.reset();
         expressionCount++;
-        compileExpression(expressionList);
+        compileExpression(subroutineSymbolTable, expressionList);
 
         /* -----------------引数続く----------------- */
       } else if (line.get(CONTENT).equals(",")) {
@@ -907,13 +924,14 @@ public class CompilationEngine implements AutoCloseable {
      appendChildIncludeText(letStatement, parseXMLLine(this.reader.readLine()));
   */
 
-  private void compileArrayIterator(Element parent, Map<String, String> firstLine)
+  private void compileArrayIterator(
+      SymbolTable subroutineSymbolTable, Element parent, Map<String, String> firstLine)
       throws IOException {
     // symbol"["のコンパイル
     appendChildIncludeText(parent, firstLine);
 
     // 配列イテレータのコンパイル
-    compileExpression(parent);
+    compileExpression(subroutineSymbolTable, parent);
 
     // symbol「]」のコンパイル
     appendChildIncludeText(parent, parseXMLLine(this.reader.readLine()));

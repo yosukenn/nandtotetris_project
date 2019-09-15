@@ -43,7 +43,7 @@ public class VMWriter extends BufferedWriter implements AutoCloseable {
   }
 
   /** functionコマンドを書く。 */
-  public void writeFunction(String name, int nLocals) throws IOException {
+  public void writeFunction(String name, long nLocals) throws IOException {
     write("function " + name + " " + nLocals + "\n");
   }
 

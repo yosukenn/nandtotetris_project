@@ -23,6 +23,9 @@
 ## compileExpressionList()
 - 関数呼び出し前に引数をスタックにプッシュする。
 
+## compileTerm()
+- keyword "this", "true", "false"
+
 # VMコマンド
 ## 算術コマンド
 スタック上で算術演算と論理演算を行う。<br>
