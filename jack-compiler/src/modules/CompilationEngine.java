@@ -378,7 +378,7 @@ public class CompilationEngine implements AutoCloseable {
       // symbol";"の出力
       var seventhLine = parseXMLLine(this.reader.readLine());
 
-      vmWriter.bufferCallCommand(
+      vmWriter.bufferCall(
           secondLine.get(CONTENT) + thirdLine.get(CONTENT) + forthLine.get(CONTENT), numOfArgs);
 
     } else if (thirdLine.get(CONTENT).equals("(")) {
@@ -392,10 +392,14 @@ public class CompilationEngine implements AutoCloseable {
       // symbol「;」の出力
       var fifthLine = parseXMLLine(this.reader.readLine());
 
-      vmWriter.bufferCallCommand(compiledClassName + "." + secondLine.get(CONTENT), numOfArgs);
+      vmWriter.bufferCall(compiledClassName + "." + secondLine.get(CONTENT), numOfArgs);
     }
   }
 
+  /**
+   * let文をコンパイルする。<br>
+   * 変数への値の代入を行うのがlet文。
+   */
   public void compileLet(
       SymbolTable subroutineSymbolTable, Map<String, String> firstLine, VMWriter vmWriter)
       throws IOException {
@@ -443,10 +447,13 @@ public class CompilationEngine implements AutoCloseable {
     var fifthLine = parseXMLLine(this.reader.readLine());
     compileStatements(subroutineSymbolTable, fifthLine, vmWriter);
 
-    // TODO compileStatements()で行を読み込み過ぎているのを修正する必要があるが、これを修正すると崩壊するので無理やり"}"をコンパイルするようにしている。
     var closeSymbolLine = Map.of(ELEMENT_TYPE, "symbol", CONTENT, "}", ENCLOSED_CONTENT, " } ");
   }
 
+  /**
+   * return文をコンパイルする。 TODO 作業中。Sevenをコンパイルしようとしているところだよ！<br>
+   * 関数の返り値をスタックのプッシュした後でreturnコマンドが実行される。
+   */
   public void compileReturn(
       SymbolTable subroutineSymbolTable, Map<String, String> firstLine, VMWriter vmWriter)
       throws IOException {
@@ -464,6 +471,8 @@ public class CompilationEngine implements AutoCloseable {
 
     } else if (secondLine.get(ELEMENT_TYPE).equals("symbol")) {
     }
+
+    vmWriter.bufferReturn();
   }
 
   public void compileIf(
@@ -529,17 +538,17 @@ public class CompilationEngine implements AutoCloseable {
     /* ----------------------------------------論理演算: | -------------------------------------- */
     if (nextEle.get(CONTENT).equals("+") // x + y
         || nextEle.get(CONTENT).equals("-") // x - y
+        || nextEle.get(CONTENT).equals("=") // x = y
         || nextEle.get(CONTENT).equals("|")) { // x | y
       var resultMap2 = compileTerm(subroutineSymbolTable, vmWriter);
       vmWriter.bufferPushCommand(
           Segment.fromCode(resultMap2.get(SEGMENT)), Integer.parseInt(resultMap2.get(INDEX)));
       vmWriter.bufferArithmetic(ArithmeticCommand.fromCode(nextEle.get(CONTENT)));
 
-    } else if (nextEle.get(CONTENT).equals("=")
-        || nextEle.get(CONTENT).equals("*") // x * y
+    } else if (nextEle.get(CONTENT).equals("*") // x * y
         || nextEle.get(CONTENT).equals("/")) { // x / y
       var resultMap2 = compileTerm(subroutineSymbolTable, vmWriter);
-      // TODO どうしましょ
+      // TODO OSに定義されている関数Math.multiply, Math.divide を呼べばいい。
 
     } else {
       this.reader.reset();
@@ -634,14 +643,12 @@ public class CompilationEngine implements AutoCloseable {
       if (secondLine.get(CONTENT).equals(".")) {
         // サブルーチン呼び出し
         compileCallSubroutine(subroutineSymbolTable, secondLine, vmWriter);
-
-        // TODO resultMapの生成
+        // TODO 引数として関数の返り値を渡すことがありえるのかわからないので対応を保留。
 
       } else if (secondLine.get(CONTENT).equals("[")) {
         // 配列宣言のコンパイル
         compileArrayIterator(subroutineSymbolTable, secondLine, vmWriter);
-
-        // TODO resultMapの生成
+        // TODO 引数として配列を渡すことがありえるのかわからないので対応を保留。
 
       } else {
         this.reader.reset();

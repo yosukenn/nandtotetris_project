@@ -29,11 +29,11 @@ public class VMWriter extends BufferedWriter implements AutoCloseable {
   public void bufferArithmetic(ArithmeticCommand command) {
     switch (command) {
       case ADD:
-        stringBuffer.append("add");
+        stringBuffer.append("add\n");
       case SUB:
-        stringBuffer.append("sub");
+        stringBuffer.append("sub\n");
       case NEG:
-        stringBuffer.append("neg");
+        stringBuffer.append("neg\n");
       case EQ:
       case GT:
       case LT:
@@ -53,7 +53,7 @@ public class VMWriter extends BufferedWriter implements AutoCloseable {
   public void writeIf(String label) {}
 
   /** callコマンドを書く。 */
-  public void bufferCallCommand(String name, int nArgs) {
+  public void bufferCall(String name, int nArgs) {
     stringBuffer.append("call " + name + " " + nArgs + "\n");
   }
 
@@ -63,7 +63,9 @@ public class VMWriter extends BufferedWriter implements AutoCloseable {
   }
 
   /** returnコマンドを書く。 */
-  public void writeReturn() {}
+  public void bufferReturn() {
+    stringBuffer.append("return\n");
+  }
 
   /** string buffer に溜め込んだ文字列をvmファイルに書き込む。 */
   public void writeStringBuffer() throws IOException {
