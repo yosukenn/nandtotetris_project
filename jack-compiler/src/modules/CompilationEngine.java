@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import modules.data.ArithmeticCommand;
 import modules.data.IdentifierAttr;
 import modules.data.Segment;
 
@@ -237,12 +238,10 @@ public class CompilationEngine implements AutoCloseable {
   public void compileParameterList(SymbolTable subroutineSymbolTable) throws IOException {
 
     this.reader.mark(100);
-    var firstLine = parseXMLLine(this.reader.readLine());
+    var firstLine = parseXMLLine(this.reader.readLine()); // 引数の型を表している。
     if (firstLine.get(ELEMENT_TYPE).equals("keyword")) {
       while (true) {
-        // keyword(引数の型)を構文木に書き込む
-
-        // identifier(引数の変数名)を構文木に書き込む
+        // identifier(引数の変数名)を読み込み
         var secondLine = parseXMLLine(this.reader.readLine());
 
         // identifierをシンボルテーブルに登録する。
@@ -345,28 +344,32 @@ public class CompilationEngine implements AutoCloseable {
     }
   }
 
+  /**
+   * jack言語のdoコマンドを、vmコマンドにコンパイルする。
+   *
+   * @param subroutineSymbolTable
+   * @param firstLine keyword "do" を表す。
+   * @param vmWriter
+   * @throws IOException
+   */
   public void compileDo(
       SymbolTable subroutineSymbolTable, Map<String, String> firstLine, VMWriter vmWriter)
       throws IOException {
 
-    // keyword「do」の出力
-
-    // identifier 変数名 or メソッド名 の出力
+    // identifier 変数名 or メソッド名 の読み込み
     var secondLine = parseXMLLine(this.reader.readLine());
 
     var numOfArgs = 0; // 呼び出し先の関数の引数の数
 
     var thirdLine = parseXMLLine(this.reader.readLine());
     if (thirdLine.get(CONTENT).equals(".")) {
-      // symbol「.」の出力
-
       // identifierの出力
       var forthLine = parseXMLLine(this.reader.readLine());
 
       // symbol「(」の出力
       var fifthLine = parseXMLLine(this.reader.readLine());
 
-      numOfArgs = compileExpressionList(subroutineSymbolTable, vmWriter);
+      numOfArgs = compileExpressionList(subroutineSymbolTable, vmWriter); // 引数のプッシュを済ませる。
 
       // symbol「)」の出力
       var sixthLine = parseXMLLine(this.reader.readLine());
@@ -504,22 +507,37 @@ public class CompilationEngine implements AutoCloseable {
     }
   }
 
-  public Map<String, String> compileExpression(SymbolTable subroutineSymbolTable, VMWriter vmWriter)
+  /**
+   * 式をコンパイルする。<br>
+   *
+   * @return compileExpressionList()から呼ばれた場合、pushすべき引数を返す。
+   */
+  public void compileExpression(SymbolTable subroutineSymbolTable, VMWriter vmWriter)
       throws IOException {
 
-    var resultMap = compileTerm(subroutineSymbolTable, vmWriter);
+    var resultMap1 = compileTerm(subroutineSymbolTable, vmWriter);
+    vmWriter.bufferPushCommand(
+        Segment.fromCode(resultMap1.get(SEGMENT)), Integer.parseInt(resultMap1.get(EXPRESSION)));
 
+    // TODO "|", "*", "/", "+"が複数回出てくる場合が出てきたら対応を追加する。
     this.reader.mark(100);
     var nextEle = parseXMLLine(this.reader.readLine());
-    if (nextEle.get(CONTENT).equals("|")
-        || nextEle.get(CONTENT).equals("*")
-        || nextEle.get(CONTENT).equals("/")
-        || nextEle.get(CONTENT).equals("+")
-        || nextEle.get(CONTENT).equals("-")
-        || nextEle.get(CONTENT).equals("=")) {
-      // TODO "|", "*", "/", "+"が複数回出てくる場合が出てきたら対応を追加する。
-      // 複数の変数を代入する場合の場合
-      compileTerm(subroutineSymbolTable, vmWriter);
+
+    /* ----------------------------------------算術演算-------------------------------------- */
+    if (nextEle.get(CONTENT).equals("+") // x + y
+        || nextEle.get(CONTENT).equals("-")) { // x - y
+      // 複数の変数を代入する場合（算術演算, etc）
+      var resultMap2 = compileTerm(subroutineSymbolTable, vmWriter);
+      vmWriter.bufferPushCommand(
+          Segment.fromCode(resultMap2.get(SEGMENT)), Integer.parseInt(resultMap2.get(EXPRESSION)));
+      vmWriter.bufferArithmetic(ArithmeticCommand.fromCode(nextEle.get(CONTENT)));
+
+    } else if (nextEle.get(CONTENT).equals("|")
+        || nextEle.get(CONTENT).equals("=")
+        || nextEle.get(CONTENT).equals("*") // x * y
+        || nextEle.get(CONTENT).equals("/")) { // x / y
+      var resultMap2 = compileTerm(subroutineSymbolTable, vmWriter);
+      // TODO どうしましょ
 
     } else {
       this.reader.reset();
@@ -527,32 +545,27 @@ public class CompilationEngine implements AutoCloseable {
 
     this.reader.mark(100);
     var secondLine = parseXMLLine(this.reader.readLine());
-    if (secondLine.get(CONTENT).equals("&lt;")) { // 不等号
-      //      appendChildIncludeText(
-      //          expression, Map.of(ELEMENT_TYPE, "symbol", CONTENT, "<", ENCLOSED_CONTENT, " <
-      // "));
-      compileTerm(subroutineSymbolTable, vmWriter);
-    } else if (secondLine.get(CONTENT).equals("&gt;")) {
-      //      appendChildIncludeText(
-      //          expression, Map.of(ELEMENT_TYPE, "symbol", CONTENT, ">", ENCLOSED_CONTENT, " >
-      // "));
-      compileTerm(subroutineSymbolTable, vmWriter);
+    /* ----------------------------------------論理演算-------------------------------------- */
+    if (secondLine.get(CONTENT).equals("&lt;") // 不等号: <
+        || secondLine.get(CONTENT).equals("&gt;")) { // 不等号: >
+      var resultMap2 = compileTerm(subroutineSymbolTable, vmWriter);
+      vmWriter.bufferPushCommand(
+          Segment.fromCode(resultMap2.get(SEGMENT)), Integer.parseInt(resultMap2.get(EXPRESSION)));
+      var operand = secondLine.get(CONTENT).equals("&lt;") ? "<" : ">";
+      vmWriter.bufferArithmetic(ArithmeticCommand.fromCode(operand));
+
     } else {
       this.reader.reset();
     }
 
     this.reader.mark(100);
-    var thirdLine = parseXMLLine(this.reader.readLine()); // and演算子
+    var thirdLine = parseXMLLine(this.reader.readLine()); // and演算子: &
     if (thirdLine.get(CONTENT).equals("&amp;")) { // TODO "&"が複数出てくるパターン対策。
-      //      appendChildIncludeText(
-      //          expression, Map.of(ELEMENT_TYPE, "symbol", CONTENT, "&", ENCLOSED_CONTENT, " &
-      // "));
       compileTerm(subroutineSymbolTable, vmWriter);
+
     } else {
       this.reader.reset();
     }
-
-    return resultMap;
   }
 
   /** 式(Expression)の一部分をコンパイルする */
@@ -595,7 +608,7 @@ public class CompilationEngine implements AutoCloseable {
     if (firstLine.get(CONTENT).equals("(")) {
       // "( sign variable )" をコンパイルする。
 
-      // "sign variable"
+      // "sign variable" 括弧で括られた式。
       compileExpression(subroutineSymbolTable, vmWriter);
 
       // ")"
@@ -632,45 +645,32 @@ public class CompilationEngine implements AutoCloseable {
       throws IOException {
     var expressionCount = 0; // 引数の数の初期化
 
-    // TODO 作業中 関数呼び出しの前に引数をスタックにプッシュする。残りは論理式と算術式が引数として渡ってきたときの処理。
-
     while (true) {
       this.reader.mark(100);
       var line = parseXMLLine(this.reader.readLine());
 
-      /* -----------------------------------引数あり--------------------------------- */
-      if (line.get(ELEMENT_TYPE).equals("keyword")) {
-        // "this", "true", "false"
+      /* -----------------------------------引数 : "this", "true", "false"--------------------------------- */
+      if (line.get(ELEMENT_TYPE).equals("keyword")
+          /* -----------------------------------引数 : シンボルテーブルに登録されている変数--------------------------------- */
+          /* -----------------------------------引数 : x + yなどの算術演算--------------------------------- */
+          /* -----------------------------------引数 : x > yなどの論理演算--------------------------------- */
+          || line.get(ELEMENT_TYPE).equals("identifier")
+          /* -----------------------------------引数 : 定数--------------------------------- */
+          || line.get(ELEMENT_TYPE).equals("integerConstant")) {
         this.reader.reset();
         expressionCount++;
-        var resultMap = compileExpression(subroutineSymbolTable, vmWriter);
-        vmWriter.bufferPushCommand(
-            Segment.fromCode(resultMap.get(SEGMENT)), Integer.parseInt(resultMap.get(EXPRESSION)));
-
-      } else if (line.get(ELEMENT_TYPE).equals("identifier")) {
-        // シンボルテーブルに登録されている変数
-        this.reader.reset();
-        expressionCount++;
-        var resultMap = compileExpression(subroutineSymbolTable, vmWriter);
-        vmWriter.bufferPushCommand(
-            Segment.fromCode(resultMap.get(SEGMENT)), Integer.parseInt(resultMap.get(EXPRESSION)));
-
-      } else if (line.get(ELEMENT_TYPE).equals("integerConstant")) {
-        // 定数
-        this.reader.reset();
-        expressionCount++;
-        var resultMap = compileExpression(subroutineSymbolTable, vmWriter);
-        vmWriter.bufferPushCommand(
-            Segment.fromCode(resultMap.get(SEGMENT)), Integer.parseInt(resultMap.get(EXPRESSION)));
+        compileExpression(subroutineSymbolTable, vmWriter);
 
       } else if (line.get(ELEMENT_TYPE).equals("stringConstant")) {
-        // 文字列 // TODO ?
+        /* -----------------------------------引数 : 文字列--------------------------------- */
+        // TODO どうする？
         this.reader.reset();
         expressionCount++;
         compileExpression(subroutineSymbolTable, vmWriter);
 
       } else if (line.get(CONTENT).equals("(")) {
-        // (1 + 2)などの式。
+        // TODO 作業中 関数呼び出しの前に引数をスタックにプッシュする。残りは論理式と算術式が引数として渡ってきたときの処理。
+        /* -----------------------------------引数 : (1 + 2)などの式。--------------------------------- */
         this.reader.reset();
         expressionCount++;
         compileExpression(subroutineSymbolTable, vmWriter);

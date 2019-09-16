@@ -26,7 +26,21 @@ public class VMWriter extends BufferedWriter implements AutoCloseable {
   public void writePop(Segment segment, int index) {}
 
   /** 算術コマンドを書く。 */
-  public void writeArithmetic(ArithmeticCommand command) {}
+  public void bufferArithmetic(ArithmeticCommand command) {
+    switch (command) {
+      case ADD:
+        stringBuffer.append("add");
+      case NEG:
+        stringBuffer.append("neg");
+      case EQ:
+      case GT:
+      case LT:
+      case OR:
+      case AND:
+      case NOT:
+      case SUB:
+    }
+  }
 
   /** labelコマンドを書く。 */
   public void writeLabel(String label) {}
