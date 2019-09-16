@@ -24,15 +24,8 @@
 - 関数呼び出し前に引数をスタックにプッシュする。
 
 ## compileExpression()
-- compileExpressionList()から渡ってくるもの
-    - keyword "this", "true", "false"
-    - シンボルテーブルに登録されている変数
-    - 定数（整数）
-    - 文字列
-    - (1 + 2)などの式。
 
 ## compileTerm()
-- keyword "this", "true", "false"
 
 # VMコマンド
 ## 算術コマンド

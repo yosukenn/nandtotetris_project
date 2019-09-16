@@ -48,7 +48,8 @@ public class CompilationEngine implements AutoCloseable {
 
   // VMコマンド用定数
   private static final String SEGMENT = "segment";
-  private static final String EXPRESSION = "expression";
+  private static final String INDEX = "expression";
+  private static final String DO_NOTHING = "do nothing";
 
   public CompilationEngine(File parentDir, String inputFile, String outputFile) throws IOException {
     this.parentPath = parentDir;
@@ -509,31 +510,32 @@ public class CompilationEngine implements AutoCloseable {
 
   /**
    * 式をコンパイルする。<br>
-   *
-   * @return compileExpressionList()から呼ばれた場合、pushすべき引数を返す。
+   * compileExpressionList()から呼ばれた場合のために、引数となるこれらをスタックにプッシュする。
    */
   public void compileExpression(SymbolTable subroutineSymbolTable, VMWriter vmWriter)
       throws IOException {
 
     var resultMap1 = compileTerm(subroutineSymbolTable, vmWriter);
-    vmWriter.bufferPushCommand(
-        Segment.fromCode(resultMap1.get(SEGMENT)), Integer.parseInt(resultMap1.get(EXPRESSION)));
+    if (!resultMap1.containsKey(DO_NOTHING)) {
+      vmWriter.bufferPushCommand(
+          Segment.fromCode(resultMap1.get(SEGMENT)), Integer.parseInt(resultMap1.get(INDEX)));
+    }
 
     // TODO "|", "*", "/", "+"が複数回出てくる場合が出てきたら対応を追加する。
     this.reader.mark(100);
     var nextEle = parseXMLLine(this.reader.readLine());
 
     /* ----------------------------------------算術演算-------------------------------------- */
+    /* ----------------------------------------論理演算: | -------------------------------------- */
     if (nextEle.get(CONTENT).equals("+") // x + y
-        || nextEle.get(CONTENT).equals("-")) { // x - y
-      // 複数の変数を代入する場合（算術演算, etc）
+        || nextEle.get(CONTENT).equals("-") // x - y
+        || nextEle.get(CONTENT).equals("|")) { // x | y
       var resultMap2 = compileTerm(subroutineSymbolTable, vmWriter);
       vmWriter.bufferPushCommand(
-          Segment.fromCode(resultMap2.get(SEGMENT)), Integer.parseInt(resultMap2.get(EXPRESSION)));
+          Segment.fromCode(resultMap2.get(SEGMENT)), Integer.parseInt(resultMap2.get(INDEX)));
       vmWriter.bufferArithmetic(ArithmeticCommand.fromCode(nextEle.get(CONTENT)));
 
-    } else if (nextEle.get(CONTENT).equals("|")
-        || nextEle.get(CONTENT).equals("=")
+    } else if (nextEle.get(CONTENT).equals("=")
         || nextEle.get(CONTENT).equals("*") // x * y
         || nextEle.get(CONTENT).equals("/")) { // x / y
       var resultMap2 = compileTerm(subroutineSymbolTable, vmWriter);
@@ -545,12 +547,12 @@ public class CompilationEngine implements AutoCloseable {
 
     this.reader.mark(100);
     var secondLine = parseXMLLine(this.reader.readLine());
-    /* ----------------------------------------論理演算-------------------------------------- */
+    /* ----------------------------------------論理演算: <, >, &-------------------------------------- */
     if (secondLine.get(CONTENT).equals("&lt;") // 不等号: <
         || secondLine.get(CONTENT).equals("&gt;")) { // 不等号: >
       var resultMap2 = compileTerm(subroutineSymbolTable, vmWriter);
       vmWriter.bufferPushCommand(
-          Segment.fromCode(resultMap2.get(SEGMENT)), Integer.parseInt(resultMap2.get(EXPRESSION)));
+          Segment.fromCode(resultMap2.get(SEGMENT)), Integer.parseInt(resultMap2.get(INDEX)));
       var operand = secondLine.get(CONTENT).equals("&lt;") ? "<" : ">";
       vmWriter.bufferArithmetic(ArithmeticCommand.fromCode(operand));
 
@@ -561,7 +563,10 @@ public class CompilationEngine implements AutoCloseable {
     this.reader.mark(100);
     var thirdLine = parseXMLLine(this.reader.readLine()); // and演算子: &
     if (thirdLine.get(CONTENT).equals("&amp;")) { // TODO "&"が複数出てくるパターン対策。
-      compileTerm(subroutineSymbolTable, vmWriter);
+      var resultMap2 = compileTerm(subroutineSymbolTable, vmWriter);
+      vmWriter.bufferPushCommand(
+          Segment.fromCode(resultMap2.get(SEGMENT)), Integer.parseInt(resultMap2.get(INDEX)));
+      vmWriter.bufferArithmetic(ArithmeticCommand.fromCode("&"));
 
     } else {
       this.reader.reset();
@@ -583,17 +588,17 @@ public class CompilationEngine implements AutoCloseable {
               subroutineSymbolTable
                   .kindOf(firstLine.get(CONTENT))
                   .getCode(), // TODO IdentifierAttrとSegmentは必ずしも一致しないので、多分ずれてくる。一旦保留。
-              EXPRESSION,
+              INDEX,
               String.valueOf(subroutineSymbolTable.indexOf(firstLine.get(CONTENT))));
 
       // ---------------------keyword "this"--------------------------------
     } else if (firstLine.get(CONTENT).equals("this")) {
 
-      resultMap = Map.of(SEGMENT, ARG.getCode(), EXPRESSION, "0");
+      resultMap = Map.of(SEGMENT, ARG.getCode(), INDEX, "0");
 
     } else if (firstLine.get(ELEMENT_TYPE).equals("integerConstant")) {
       // ---------------------定数：integerConstant---------------------------
-      resultMap = Map.of(SEGMENT, CONST.getCode(), EXPRESSION, firstLine.get(CONTENT));
+      resultMap = Map.of(SEGMENT, CONST.getCode(), INDEX, firstLine.get(CONTENT));
 
     } else if (firstLine.get(ELEMENT_TYPE).equals("stringConstant")) {
       // ---------------------文字列：stringConstant---------------------------
@@ -602,21 +607,26 @@ public class CompilationEngine implements AutoCloseable {
     } else {
       // ---------------------"true", "false"---------------------------------
       var number = firstLine.get(CONTENT).equals("true") ? "1" : "0";
-      resultMap = Map.of(SEGMENT, CONST.getCode(), EXPRESSION, number);
+      resultMap = Map.of(SEGMENT, CONST.getCode(), INDEX, number);
     }
 
+    // ---------------------(x + y) のような括弧で括られた式。---------------------------------
     if (firstLine.get(CONTENT).equals("(")) {
-      // "( sign variable )" をコンパイルする。
-
-      // "sign variable" 括弧で括られた式。
       compileExpression(subroutineSymbolTable, vmWriter);
 
-      // ")"
+      // ")" の読み取り。
       var secondLine = parseXMLLine(this.reader.readLine());
 
+      // ---------------------negate---------------------------------
+      // ---------------------not------------------------------------
     } else if (firstLine.get(CONTENT).equals("-") || firstLine.get(CONTENT).equals("~")) {
-      // 符号付き変数のコンパイル
-      compileTerm(subroutineSymbolTable, vmWriter);
+      resultMap = compileTerm(subroutineSymbolTable, vmWriter);
+      vmWriter.bufferPushCommand(
+          Segment.fromCode(resultMap.get(SEGMENT)), Integer.parseInt(resultMap.get(INDEX)));
+      var commandCode = firstLine.get(CONTENT).equals("-") ? "negate" : "~";
+      vmWriter.bufferArithmetic(ArithmeticCommand.fromCode(commandCode));
+
+      return Map.of(DO_NOTHING, "do nothing"); // 何もしないのでNO_NOTHINGキーを返す。
 
     } else {
       this.reader.mark(100);
@@ -624,9 +634,14 @@ public class CompilationEngine implements AutoCloseable {
       if (secondLine.get(CONTENT).equals(".")) {
         // サブルーチン呼び出し
         compileCallSubroutine(subroutineSymbolTable, secondLine, vmWriter);
+
+        // TODO resultMapの生成
+
       } else if (secondLine.get(CONTENT).equals("[")) {
         // 配列宣言のコンパイル
         compileArrayIterator(subroutineSymbolTable, secondLine, vmWriter);
+
+        // TODO resultMapの生成
 
       } else {
         this.reader.reset();
@@ -669,7 +684,6 @@ public class CompilationEngine implements AutoCloseable {
         compileExpression(subroutineSymbolTable, vmWriter);
 
       } else if (line.get(CONTENT).equals("(")) {
-        // TODO 作業中 関数呼び出しの前に引数をスタックにプッシュする。残りは論理式と算術式が引数として渡ってきたときの処理。
         /* -----------------------------------引数 : (1 + 2)などの式。--------------------------------- */
         this.reader.reset();
         expressionCount++;

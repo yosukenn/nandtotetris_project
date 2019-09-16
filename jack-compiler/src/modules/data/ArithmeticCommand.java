@@ -11,7 +11,7 @@ public enum ArithmeticCommand {
   LT("<"),
   AND("&"),
   OR("|"),
-  NOT("not");
+  NOT("~");
 
   private String operand;
 

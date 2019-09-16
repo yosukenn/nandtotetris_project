@@ -30,6 +30,8 @@ public class VMWriter extends BufferedWriter implements AutoCloseable {
     switch (command) {
       case ADD:
         stringBuffer.append("add");
+      case SUB:
+        stringBuffer.append("sub");
       case NEG:
         stringBuffer.append("neg");
       case EQ:
@@ -38,7 +40,6 @@ public class VMWriter extends BufferedWriter implements AutoCloseable {
       case OR:
       case AND:
       case NOT:
-      case SUB:
     }
   }
 
