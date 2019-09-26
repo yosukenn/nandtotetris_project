@@ -51,6 +51,10 @@ public class CompilationEngine implements AutoCloseable {
   private static final String INDEX = "expression";
   private static final String DO_NOTHING = "do nothing";
 
+  // OSの関数名
+  private static final String MULTIPLY = "Math.multiply";
+  private static final String DIVIDE = "Math.divide";
+
   public CompilationEngine(File parentDir, String inputFile, String outputFile) throws IOException {
     this.parentPath = parentDir;
 
@@ -451,7 +455,7 @@ public class CompilationEngine implements AutoCloseable {
   }
 
   /**
-   * return文をコンパイルする。 TODO 作業中。Sevenをコンパイルしようとしているところだよ！<br>
+   * return文をコンパイルする。<br>
    * 関数の返り値をスタックのプッシュした後でreturnコマンドが実行される。
    */
   public void compileReturn(
@@ -545,10 +549,18 @@ public class CompilationEngine implements AutoCloseable {
           Segment.fromCode(resultMap2.get(SEGMENT)), Integer.parseInt(resultMap2.get(INDEX)));
       vmWriter.bufferArithmetic(ArithmeticCommand.fromCode(nextEle.get(CONTENT)));
 
-    } else if (nextEle.get(CONTENT).equals("*") // x * y
-        || nextEle.get(CONTENT).equals("/")) { // x / y
+    } else if (nextEle.get(CONTENT).equals("*")) { // x * y
       var resultMap2 = compileTerm(subroutineSymbolTable, vmWriter);
-      // TODO OSに定義されている関数Math.multiply, Math.divide を呼べばいい。
+      // TODO （イマココ）OSに定義されている関数Math.multiply, Math.divide を呼べばいい。
+      vmWriter.bufferPushCommand(
+          Segment.fromCode(resultMap2.get(SEGMENT)), Integer.parseInt(resultMap2.get(INDEX)));
+      vmWriter.bufferCall(MULTIPLY, 2);
+
+    } else if (nextEle.get(CONTENT).equals("/")) { // x / y
+      var resultMap2 = compileTerm(subroutineSymbolTable, vmWriter);
+      vmWriter.bufferPushCommand(
+          Segment.fromCode(resultMap2.get(SEGMENT)), Integer.parseInt(resultMap2.get(INDEX)));
+      vmWriter.bufferCall(DIVIDE, 2);
 
     } else {
       this.reader.reset();
@@ -611,7 +623,7 @@ public class CompilationEngine implements AutoCloseable {
 
     } else if (firstLine.get(ELEMENT_TYPE).equals("stringConstant")) {
       // ---------------------文字列：stringConstant---------------------------
-      // TODO どうする？一旦保留
+      // TODO どうする？おそらくOSのString.new()を使う？
 
     } else {
       // ---------------------"true", "false"---------------------------------
@@ -685,7 +697,7 @@ public class CompilationEngine implements AutoCloseable {
 
       } else if (line.get(ELEMENT_TYPE).equals("stringConstant")) {
         /* -----------------------------------引数 : 文字列--------------------------------- */
-        // TODO どうする？
+        // TODO どうする？おそらくOSのString.new()を使う？
         this.reader.reset();
         expressionCount++;
         compileExpression(subroutineSymbolTable, vmWriter);
