@@ -214,7 +214,8 @@ public class CompilationEngine implements AutoCloseable {
 
     // VMWriterを使っての関数定義コマンドとstringBufferの書き込み
     vmWriter.writeFunction(
-        thirdLine.get(CONTENT), subroutineSymbolTable.varCount(IdentifierAttr.VAR));
+        compiledClassName + "." + thirdLine.get(CONTENT),
+        subroutineSymbolTable.varCount(IdentifierAttr.VAR));
     vmWriter.writeStringBuffer();
   }
 
