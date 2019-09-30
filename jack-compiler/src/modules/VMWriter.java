@@ -30,10 +30,13 @@ public class VMWriter extends BufferedWriter implements AutoCloseable {
     switch (command) {
       case ADD:
         stringBuffer.append("add\n");
+        break;
       case SUB:
         stringBuffer.append("sub\n");
+        break;
       case NEG:
         stringBuffer.append("neg\n");
+        break;
       case EQ:
       case GT:
       case LT:
