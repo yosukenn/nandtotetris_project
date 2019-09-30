@@ -545,9 +545,10 @@ public class CompilationEngine implements AutoCloseable {
         || nextEle.get(CONTENT).equals("=") // x = y
         || nextEle.get(CONTENT).equals("|")) { // x | y
       var resultMap2 = compileTerm(subroutineSymbolTable, vmWriter);
-      vmWriter.bufferPushCommand(
-          Segment.fromCode(resultMap2.get(SEGMENT)),
-          Integer.parseInt(resultMap2.get(INDEX))); // いらないのでは
+      if (!resultMap2.containsKey(DO_NOTHING)) {
+        vmWriter.bufferPushCommand(
+            Segment.fromCode(resultMap2.get(SEGMENT)), Integer.parseInt(resultMap2.get(INDEX)));
+      }
       vmWriter.bufferArithmetic(ArithmeticCommand.fromCode(nextEle.get(CONTENT)));
 
     } else if (nextEle.get(CONTENT).equals("*")) { // x * y
@@ -626,10 +627,11 @@ public class CompilationEngine implements AutoCloseable {
       // TODO どうする？おそらくOSのString.new()を使う？
 
       // ---------------------"true", "false"---------------------------------
-    } else {
-      // TODO イマココ。ここの分岐に入ってしまっているので constant 0 を返してしまっている。
+    } else if (firstLine.get(CONTENT).equals("true") || firstLine.get(CONTENT).equals("false")) {
       var number = firstLine.get(CONTENT).equals("true") ? "1" : "0";
       resultMap = Map.of(SEGMENT, CONST.getCode(), INDEX, number);
+    } else {
+      resultMap = Map.of(DO_NOTHING, "do nothing");
     }
 
     // ---------------------(x + y) のような括弧で括られた式。---------------------------------
