@@ -22,7 +22,7 @@ TODO 修正できる点（多分やらないけど）
 
 /**
  * 再帰によるトップダウン式の解析器<br>
- * 構文木であるXMLファイル生成関連のプログラムには[create syntax tree]を付与しています。
+ * 構文木であるXMLファイル生成関連のプログラムにはを付与しています。
  */
 public class CompilationEngine implements AutoCloseable {
 
@@ -79,31 +79,27 @@ public class CompilationEngine implements AutoCloseable {
       throw new IllegalStateException();
     }
 
-    // [create syntax tree]classの書き込み
-
-    // [create syntax tree]keyword"class"の書き込み
-
-    // [create syntax tree]クラス名となるidentifierの書き込み。クラス名はシンボルテーブルに記録しない。
+    // クラス名となるidentifier読み込み。クラス名はシンボルテーブルに記録しない。
     var secondLine = parseXMLLine(this.reader.readLine());
     this.compiledClassName = secondLine.get(CONTENT);
 
     // VMWriterの生成
     try (var vmWriter = new VMWriter(new File(parentPath, compiledClassName + ".vm"))) {
-      // symbol"{"の書き込み
-      var thirdLine = parseXMLLine(this.reader.readLine());
+      // symbol"{"の読み込み
+      parseXMLLine(this.reader.readLine());
 
-      // [create syntax tree]xml要素の種類によって適切な処理を呼び出す。
+      // xml要素の種類によって適切な処理を呼び出す。
       while (true) {
-        var forthLine = parseXMLLine(this.reader.readLine());
-        switch (forthLine.get(CONTENT)) {
+        var thirdLine = parseXMLLine(this.reader.readLine());
+        switch (thirdLine.get(CONTENT)) {
           case STATIC_KEYWORD:
           case FIELD_KEYWORD:
-            compileClassVarDec(classSymbolTable, forthLine);
+            compileClassVarDec(classSymbolTable, thirdLine);
             continue;
           case FUNCTION_KEYWORD:
           case CONSTRUCTOR_KEYWORD:
           case METHOD_KEYWORD:
-            compileSubroutine(forthLine, vmWriter);
+            compileSubroutine(thirdLine, vmWriter, classSymbolTable);
             continue;
         }
         break;
@@ -150,12 +146,12 @@ public class CompilationEngine implements AutoCloseable {
   /** スタティック宣言、フィールド宣言をコンパイルする。 */
   public void compileClassVarDec(SymbolTable classSymbolTable, Map<String, String> stringMap)
       throws IOException {
-    // [create syntax tree]keyword "static", "field"の書き込み
+    // keyword "static", "field"の読み込み
 
-    // [create syntax tree]データ型を表すkeywordの書き込み
+    // データ型を表すkeywordの読み込み
     var secondLine = parseXMLLine(this.reader.readLine());
 
-    // [create syntax tree]変数名を表すidentifierの書き込み
+    // 変数名を表すidentifierの読み込み
     var thirdLine = parseXMLLine(this.reader.readLine());
 
     // identifierのシンボルテーブルへの登録。
@@ -167,14 +163,13 @@ public class CompilationEngine implements AutoCloseable {
     var forthLine = parseXMLLine(this.reader.readLine());
     while (true) {
       if (forthLine.get(CONTENT).equals(";")) {
-        // [create syntax tree]symbol";"の書き込み
         break;
       } else if (forthLine.get(CONTENT).equals(",")) { // ","で区切られて複数の変数を宣言している場合
 
-        // [create syntax tree]変数名を表すidentifierの書き込み
+        // 変数名を表すidentifierの読み込み
         var fifthLine = parseXMLLine(this.reader.readLine());
 
-        // [create syntax tree]identifierのシンボルテーブルへの登録。
+        // identifierのシンボルテーブルへの登録。
         classSymbolTable.define(
             fifthLine.get(CONTENT),
             secondLine.get(CONTENT),
@@ -187,30 +182,31 @@ public class CompilationEngine implements AutoCloseable {
   }
 
   /** メソッド、ファンクション、コンストラクタをコンパイルする。 */
-  public void compileSubroutine(Map<String, String> stringMap, VMWriter vmWriter)
+  public void compileSubroutine(
+      Map<String, String> stringMap, VMWriter vmWriter, SymbolTable classSymbolTable)
       throws IOException {
     // サブルーチンスコープのシンボルテーブルを作成
     var subroutineSymbolTable = new SymbolTable();
     subroutineSymbolTable.startSubroutine(compiledClassName);
 
-    // [create syntax tree]keyword "function", "constructor", "method"の書き込み
+    // keyword "function", "constructor", "method"の書き込み
 
-    // [create syntax tree]データ型を表すkeywordの書き込み
+    // データ型を表すkeywordの書き込み
     var secondLine = parseXMLLine(this.reader.readLine());
 
-    // [create syntax tree]メソッド、ファンクション、コンストラクタ名identifierの書き込み
+    // メソッド、ファンクション、コンストラクタ名identifierの書き込み
     var thirdLine = parseXMLLine(this.reader.readLine());
 
-    // [create syntax tree]symbol「(」の書き込み
+    // symbol「(」の書き込み
     var forthLine = parseXMLLine(this.reader.readLine());
 
     compileParameterList(subroutineSymbolTable);
 
-    // [create syntax tree]symbol「)」の書き込み
+    // symbol「)」の書き込み
     var fifthLine = parseXMLLine(this.reader.readLine());
 
-    // [create syntax tree]「{ statements }」の書き込み
-    compileSubroutineBody(subroutineSymbolTable, vmWriter);
+    // 「{ statements }」の書き込み
+    compileSubroutineBody(classSymbolTable, subroutineSymbolTable, vmWriter);
 
     // VMWriterを使っての関数定義コマンドとstringBufferの書き込み
     vmWriter.writeFunction(
@@ -219,7 +215,8 @@ public class CompilationEngine implements AutoCloseable {
     vmWriter.writeStringBuffer();
   }
 
-  private void compileSubroutineBody(SymbolTable subroutineSymbolTable, VMWriter vmWriter)
+  private void compileSubroutineBody(
+      SymbolTable classSymbolTable, SymbolTable subroutineSymbolTable, VMWriter vmWriter)
       throws IOException {
 
     // symbol「{」の書き込み
@@ -232,7 +229,7 @@ public class CompilationEngine implements AutoCloseable {
           .equals("var")) { // TODO { subroutineBody } の冒頭でvar宣言がされることを前提としているコードなので欠陥がある。
         compileVarDec(subroutineSymbolTable, secondLine);
       } else {
-        compileStatements(subroutineSymbolTable, secondLine, vmWriter);
+        compileStatements(classSymbolTable, subroutineSymbolTable, secondLine, vmWriter);
         break;
       }
     }
@@ -276,7 +273,10 @@ public class CompilationEngine implements AutoCloseable {
    * @throws IOException
    */
   public void compileStatements(
-      SymbolTable subroutineSymbolTable, Map<String, String> firstLine, VMWriter vmWriter)
+      SymbolTable classSymbolTable,
+      SymbolTable subroutineSymbolTable,
+      Map<String, String> firstLine,
+      VMWriter vmWriter)
       throws IOException {
 
     int returnFlg = 0;
@@ -288,17 +288,17 @@ public class CompilationEngine implements AutoCloseable {
           compileDo(subroutineSymbolTable, line, vmWriter);
           break;
         case "let":
-          compileLet(subroutineSymbolTable, line, vmWriter);
+          compileLet(classSymbolTable, subroutineSymbolTable, vmWriter);
           break;
         case "while":
-          compileWhile(subroutineSymbolTable, line, vmWriter);
+          compileWhile(classSymbolTable, subroutineSymbolTable, line, vmWriter);
           break;
         case "return":
           compileReturn(subroutineSymbolTable, line, vmWriter);
           returnFlg = 1;
           break;
         case "if":
-          compileIf(subroutineSymbolTable, line, vmWriter);
+          compileIf(classSymbolTable, subroutineSymbolTable, line, vmWriter);
           break;
       }
       var readLine = this.reader.readLine();
@@ -403,37 +403,35 @@ public class CompilationEngine implements AutoCloseable {
 
   /**
    * let文をコンパイルする。<br>
-   * 変数への値の代入を行うのがlet文。
+   * 変数への値の代入を行うのがlet文。TODO イマココ letコマンドをvmコマンドでどう表現するか
    */
   public void compileLet(
-      SymbolTable subroutineSymbolTable, Map<String, String> firstLine, VMWriter vmWriter)
+      SymbolTable classSymbolTable, SymbolTable subroutineSymbolTable, VMWriter vmWriter)
       throws IOException {
 
-    // keyword"let"のコンパイル
-
-    // identifierの出力
-    var secondLine = parseXMLLine(this.reader.readLine());
+    // identifierの読み込み
+    var firstLine = parseXMLLine(this.reader.readLine());
 
     var thirdLine = parseXMLLine(this.reader.readLine());
-    if (thirdLine.get(CONTENT).equals("[")) {
+    if (thirdLine.get(CONTENT).equals("[")) { // TODO 配列は後でやる。
       // 配列宣言"[ iterator ]"部分のコンパイル
       compileArrayIterator(subroutineSymbolTable, thirdLine, vmWriter);
 
-      // symbol「=」のコンパイル
+      // symbol"="の読み込み
       parseXMLLine(this.reader.readLine());
-
-    } else {
-      // symbol「=」の出力
     }
 
-    compileExpression(subroutineSymbolTable, vmWriter);
+    compileExpression(subroutineSymbolTable, vmWriter); // 式が評価され、その結果がスタックにプッシュされる
 
-    // symbol「;」の出力
-    var forthLine = parseXMLLine(this.reader.readLine());
+    // symbol";"の読み込み
+    parseXMLLine(this.reader.readLine());
   }
 
   public void compileWhile(
-      SymbolTable subroutineSymbolTable, Map<String, String> firstLine, VMWriter vmWriter)
+      SymbolTable classSymbolTable,
+      SymbolTable subroutineSymbolTable,
+      Map<String, String> firstLine,
+      VMWriter vmWriter)
       throws IOException {
 
     // keyword"while"の書き込み
@@ -450,7 +448,7 @@ public class CompilationEngine implements AutoCloseable {
     var forthLine = parseXMLLine(this.reader.readLine());
 
     var fifthLine = parseXMLLine(this.reader.readLine());
-    compileStatements(subroutineSymbolTable, fifthLine, vmWriter);
+    compileStatements(classSymbolTable, subroutineSymbolTable, fifthLine, vmWriter);
 
     var closeSymbolLine = Map.of(ELEMENT_TYPE, "symbol", CONTENT, "}", ENCLOSED_CONTENT, " } ");
   }
@@ -481,7 +479,10 @@ public class CompilationEngine implements AutoCloseable {
   }
 
   public void compileIf(
-      SymbolTable subroutineSymbolTable, Map<String, String> firstLine, VMWriter vmWriter)
+      SymbolTable classSymbolTable,
+      SymbolTable subroutineSymbolTable,
+      Map<String, String> firstLine,
+      VMWriter vmWriter)
       throws IOException {
 
     // keyword"if"のコンパイル
@@ -499,7 +500,7 @@ public class CompilationEngine implements AutoCloseable {
 
     // statementsのコンパイル
     var forthLine = parseXMLLine(this.reader.readLine());
-    compileStatements(subroutineSymbolTable, forthLine, vmWriter);
+    compileStatements(classSymbolTable, subroutineSymbolTable, forthLine, vmWriter);
 
     // symbol"}"のコンパイル
     var fifthLine = Map.of(ELEMENT_TYPE, "symbol", CONTENT, "}", ENCLOSED_CONTENT, " } ");
@@ -513,7 +514,8 @@ public class CompilationEngine implements AutoCloseable {
       this.reader.readLine();
 
       // statementsのコンパイル
-      compileStatements(subroutineSymbolTable, parseXMLLine(this.reader.readLine()), vmWriter);
+      compileStatements(
+          classSymbolTable, subroutineSymbolTable, parseXMLLine(this.reader.readLine()), vmWriter);
 
       // symbol"}"のコンパイル
       var seventhLine = Map.of(ELEMENT_TYPE, "symbol", CONTENT, "}", ENCLOSED_CONTENT, " } ");

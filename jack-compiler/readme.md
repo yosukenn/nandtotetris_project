@@ -20,6 +20,15 @@
 ## compileDo()
 - 関数呼び出し。 call f n : ①n個の引数がスタックにプッシュされた後に、②関数fを呼び出す。
 
+## compileLet()
+- 変数への値代入。 let [変数名] = [式]
+- ① 式の部分はcompileExpression()で評価され、演算結果がスタックにプッシュされる。
+- ② スタックの一番上の値をポップして、対応するメモリセグメントに格納。
+    - static -> static
+    - field -> static
+    - argument -> argument
+    - var -> local
+
 ## compileExpressionList()
 - 関数呼び出し前に引数をスタックにプッシュする。
 

@@ -9,10 +9,19 @@ import modules.data.IdentifierAttr;
 public class SymbolTable {
 
   int staticIndex = 0;
-  int fieldIndex = 0;
 
+  int fieldIndex = 0;
   int argumentIndex = 0;
+
   int varIndex = 0;
+
+  public int getStaticIndex() {
+    return staticIndex;
+  }
+
+  public int getFieldIndex() {
+    return fieldIndex;
+  }
 
   Set<Identifier> table = new HashSet<>();
 
