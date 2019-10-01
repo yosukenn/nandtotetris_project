@@ -2,6 +2,8 @@ package modules;
 
 import static modules.data.Segment.ARG;
 import static modules.data.Segment.CONST;
+import static modules.data.Segment.LOCAL;
+import static modules.data.Segment.STATIC;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -412,19 +414,49 @@ public class CompilationEngine implements AutoCloseable {
     // identifierの読み込み
     var firstLine = parseXMLLine(this.reader.readLine());
 
-    var thirdLine = parseXMLLine(this.reader.readLine());
-    if (thirdLine.get(CONTENT).equals("[")) { // TODO 配列は後でやる。
+    var secondLine = parseXMLLine(this.reader.readLine());
+    if (secondLine.get(CONTENT).equals("[")) { // TODO 配列は後でやる。
       // 配列宣言"[ iterator ]"部分のコンパイル
-      compileArrayIterator(subroutineSymbolTable, thirdLine, vmWriter);
+      compileArrayIterator(subroutineSymbolTable, secondLine, vmWriter);
 
       // symbol"="の読み込み
       parseXMLLine(this.reader.readLine());
     }
 
     compileExpression(subroutineSymbolTable, vmWriter); // 式が評価され、その結果がスタックにプッシュされる
+    logicalPop(classSymbolTable, subroutineSymbolTable, vmWriter, firstLine.get(CONTENT));
 
     // symbol";"の読み込み
     parseXMLLine(this.reader.readLine());
+  }
+
+  /** スタックから値をポップし、与えられたシンボルに適したメモリセグメントにその値を割り当てる。 */
+  private void logicalPop(
+      SymbolTable classSymbolTable,
+      SymbolTable subroutineSymbolTable,
+      VMWriter vmWriter,
+      String symbolName) {
+    // サブルーチンスコープならポップ
+    var subroutineSymbolKind = subroutineSymbolTable.kindOf(symbolName);
+    switch (subroutineSymbolKind) {
+      case ARG:
+        vmWriter.bufferPop(ARG, subroutineSymbolTable.indexOf(symbolName));
+      case VAR:
+        vmWriter.bufferPop(LOCAL, subroutineSymbolTable.indexOf(symbolName));
+      case NONE:
+        break;
+    }
+    // クラススコープならポップ
+    var classSymbolKind = classSymbolTable.kindOf(symbolName);
+    switch (classSymbolKind) {
+      case STATIC:
+        vmWriter.bufferPop(STATIC, classSymbolTable.indexOf(symbolName));
+      case FIELD:
+        vmWriter.bufferPop(
+            STATIC, classSymbolTable.indexOf(symbolName) + classSymbolTable.indexOf(symbolName));
+      case NONE:
+        throw new IllegalStateException("シンボルテーブルに登録されていない変数ですねぇ。");
+    }
   }
 
   public void compileWhile(
@@ -533,7 +565,7 @@ public class CompilationEngine implements AutoCloseable {
 
     var resultMap1 = compileTerm(subroutineSymbolTable, vmWriter);
     if (!resultMap1.containsKey(DO_NOTHING)) {
-      vmWriter.bufferPushCommand(
+      vmWriter.bufferPush(
           Segment.fromCode(resultMap1.get(SEGMENT)), Integer.parseInt(resultMap1.get(INDEX)));
     }
 
@@ -549,20 +581,20 @@ public class CompilationEngine implements AutoCloseable {
         || nextEle.get(CONTENT).equals("|")) { // x | y
       var resultMap2 = compileTerm(subroutineSymbolTable, vmWriter);
       if (!resultMap2.containsKey(DO_NOTHING)) {
-        vmWriter.bufferPushCommand(
+        vmWriter.bufferPush(
             Segment.fromCode(resultMap2.get(SEGMENT)), Integer.parseInt(resultMap2.get(INDEX)));
       }
       vmWriter.bufferArithmetic(ArithmeticCommand.fromCode(nextEle.get(CONTENT)));
 
     } else if (nextEle.get(CONTENT).equals("*")) { // x * y
       var resultMap2 = compileTerm(subroutineSymbolTable, vmWriter);
-      vmWriter.bufferPushCommand(
+      vmWriter.bufferPush(
           Segment.fromCode(resultMap2.get(SEGMENT)), Integer.parseInt(resultMap2.get(INDEX)));
       vmWriter.bufferCall(MULTIPLY, 2);
 
     } else if (nextEle.get(CONTENT).equals("/")) { // x / y
       var resultMap2 = compileTerm(subroutineSymbolTable, vmWriter);
-      vmWriter.bufferPushCommand(
+      vmWriter.bufferPush(
           Segment.fromCode(resultMap2.get(SEGMENT)), Integer.parseInt(resultMap2.get(INDEX)));
       vmWriter.bufferCall(DIVIDE, 2);
 
@@ -576,7 +608,7 @@ public class CompilationEngine implements AutoCloseable {
     if (secondLine.get(CONTENT).equals("&lt;") // 不等号: <
         || secondLine.get(CONTENT).equals("&gt;")) { // 不等号: >
       var resultMap2 = compileTerm(subroutineSymbolTable, vmWriter);
-      vmWriter.bufferPushCommand(
+      vmWriter.bufferPush(
           Segment.fromCode(resultMap2.get(SEGMENT)), Integer.parseInt(resultMap2.get(INDEX)));
       var operand = secondLine.get(CONTENT).equals("&lt;") ? "<" : ">";
       vmWriter.bufferArithmetic(ArithmeticCommand.fromCode(operand));
@@ -589,7 +621,7 @@ public class CompilationEngine implements AutoCloseable {
     var thirdLine = parseXMLLine(this.reader.readLine()); // and演算子: &
     if (thirdLine.get(CONTENT).equals("&amp;")) { // TODO "&"が複数出てくるパターン対策。
       var resultMap2 = compileTerm(subroutineSymbolTable, vmWriter);
-      vmWriter.bufferPushCommand(
+      vmWriter.bufferPush(
           Segment.fromCode(resultMap2.get(SEGMENT)), Integer.parseInt(resultMap2.get(INDEX)));
       vmWriter.bufferArithmetic(ArithmeticCommand.fromCode("&"));
 
@@ -648,7 +680,7 @@ public class CompilationEngine implements AutoCloseable {
       // ---------------------not------------------------------------
     } else if (firstLine.get(CONTENT).equals("-") || firstLine.get(CONTENT).equals("~")) {
       resultMap = compileTerm(subroutineSymbolTable, vmWriter);
-      vmWriter.bufferPushCommand(
+      vmWriter.bufferPush(
           Segment.fromCode(resultMap.get(SEGMENT)), Integer.parseInt(resultMap.get(INDEX)));
       var commandCode = firstLine.get(CONTENT).equals("-") ? "negate" : "~";
       vmWriter.bufferArithmetic(ArithmeticCommand.fromCode(commandCode));

@@ -68,7 +68,11 @@ public class SymbolTable {
    * その識別子が現在のスコープで見つからなければ、NONEを返す。
    */
   public IdentifierAttr kindOf(String name) {
-    return NONE; // 仮
+    return table.stream()
+        .filter(identifier -> identifier.name.equals(name))
+        .findFirst()
+        .orElse(new Identifier(NONE))
+        .getKind();
   }
 
   /** 引数で与えられた名前の識別子を現在のスコープで探し、その型を返す。 */
@@ -78,19 +82,36 @@ public class SymbolTable {
 
   /** 引数で与えられた名前の識別子を現在のスコープで探し、そのインデックスを返す。 */
   public int indexOf(String name) {
-    return 0; // 仮
+    return table.stream()
+        .filter(identifier -> identifier.name.equals(name))
+        .findFirst()
+        .orElseThrow()
+        .getIndex();
   }
 
   /** 識別子を表すクラス。 */
   private class Identifier {
     private String name;
     private String type;
+
+    public int getIndex() {
+      return index;
+    }
+
     private IdentifierAttr kind;
     private int index;
+
+    public IdentifierAttr getKind() {
+      return kind;
+    }
 
     private Identifier(String name, String type, IdentifierAttr kind) {
       this.name = name;
       this.type = type;
+      this.kind = kind;
+    }
+
+    public Identifier(IdentifierAttr kind) {
       this.kind = kind;
     }
 

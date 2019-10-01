@@ -17,13 +17,15 @@ public class VMWriter extends BufferedWriter implements AutoCloseable {
     super(new FileWriter(file, true)); // 上書きを許容する。
   }
 
-  /** pushコマンドを書く。 */
-  public void bufferPushCommand(Segment segment, int index) {
+  /** pushコマンドをバッファに詰めておく。 */
+  public void bufferPush(Segment segment, int index) {
     stringBuffer.append("push " + segment.getCode() + " " + index + "\n");
   }
 
-  /** popコマンドを書く。 */
-  public void writePop(Segment segment, int index) {}
+  /** popコマンドをバッファに詰めておく。 */
+  public void bufferPop(Segment segment, int index) {
+    stringBuffer.append("pop " + segment.getCode() + " " + index + "\n");
+  }
 
   /** 算術コマンドを書く。 */
   public void bufferArithmetic(ArithmeticCommand command) {
