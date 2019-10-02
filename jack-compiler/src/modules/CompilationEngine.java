@@ -405,7 +405,7 @@ public class CompilationEngine implements AutoCloseable {
 
   /**
    * let文をコンパイルする。<br>
-   * 変数への値の代入を行うのがlet文。TODO イマココ letコマンドをvmコマンドでどう表現するか
+   * 変数への値の代入を行うのがlet文。
    */
   public void compileLet(
       SymbolTable classSymbolTable, SymbolTable subroutineSymbolTable, VMWriter vmWriter)
@@ -453,12 +453,14 @@ public class CompilationEngine implements AutoCloseable {
         vmWriter.bufferPop(STATIC, classSymbolTable.indexOf(symbolName));
       case FIELD:
         vmWriter.bufferPop(
-            STATIC, classSymbolTable.indexOf(symbolName) + classSymbolTable.indexOf(symbolName));
+            STATIC,
+            classSymbolTable.indexOf(symbolName) + classSymbolTable.indexOf(symbolName) + 1);
       case NONE:
         throw new IllegalStateException("シンボルテーブルに登録されていない変数ですねぇ。");
     }
   }
 
+  /** while文をコンパイルする。 TODO ツギココ。 */
   public void compileWhile(
       SymbolTable classSymbolTable,
       SymbolTable subroutineSymbolTable,
@@ -493,7 +495,7 @@ public class CompilationEngine implements AutoCloseable {
       SymbolTable subroutineSymbolTable, Map<String, String> firstLine, VMWriter vmWriter)
       throws IOException {
 
-    // keyword"return"のコンパイル
+    // keyword"return"
 
     this.reader.mark(100);
     var secondLine = parseXMLLine(this.reader.readLine());
@@ -502,7 +504,7 @@ public class CompilationEngine implements AutoCloseable {
       this.reader.reset();
       compileExpression(subroutineSymbolTable, vmWriter);
 
-      var forthLine = parseXMLLine(this.reader.readLine());
+      parseXMLLine(this.reader.readLine());
 
     } else if (secondLine.get(ELEMENT_TYPE).equals("symbol")) {
     }
