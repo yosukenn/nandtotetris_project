@@ -460,7 +460,7 @@ public class CompilationEngine implements AutoCloseable {
     }
   }
 
-  /** while文をコンパイルする。 TODO ツギココ。 */
+  /** while文をコンパイルする。 */
   public void compileWhile(
       SymbolTable classSymbolTable, SymbolTable subroutineSymbolTable, VMWriter vmWriter)
       throws IOException {
@@ -472,6 +472,11 @@ public class CompilationEngine implements AutoCloseable {
 
     compileExpression(subroutineSymbolTable, vmWriter);
 
+    var firtLabelIndex = vmWriter.getCurrentLadelIndex();
+    var secondLabelIndex = vmWriter.getCurrentLadelIndex();
+    vmWriter.bufferLabel("label" + firtLabelIndex);
+    vmWriter.bufferIf("label" + secondLabelIndex);
+
     // symbol ")" の読み込み
     parseXMLLine(this.reader.readLine());
 
@@ -480,6 +485,9 @@ public class CompilationEngine implements AutoCloseable {
 
     var fifthLine = parseXMLLine(this.reader.readLine());
     compileStatements(classSymbolTable, subroutineSymbolTable, fifthLine, vmWriter);
+
+    vmWriter.bufferGoto("label" + firtLabelIndex);
+    vmWriter.bufferLabel("label" + secondLabelIndex);
 
     // symbol"}"の読み込み
   }

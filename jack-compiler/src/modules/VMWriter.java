@@ -12,6 +12,15 @@ public class VMWriter extends BufferedWriter implements AutoCloseable {
 
   private StringBuilder stringBuffer = new StringBuilder();
 
+  private int ladelIndex = 0;
+
+  /** @return 現在のラベルインデックス */
+  public int getCurrentLadelIndex() {
+    var index = ladelIndex;
+    ladelIndex++;
+    return index;
+  }
+
   /** 新しいファイルを作り、それに書き込む準備をする。 */
   public VMWriter(File file) throws IOException {
     super(new FileWriter(file, true)); // 上書きを許容する。
@@ -20,6 +29,7 @@ public class VMWriter extends BufferedWriter implements AutoCloseable {
   /** pushコマンドをバッファに詰めておく。 */
   public void bufferPush(Segment segment, int index) {
     stringBuffer.append("push " + segment.getCode() + " " + index + "\n");
+    ladelIndex++;
   }
 
   /** popコマンドをバッファに詰めておく。 */
@@ -49,13 +59,19 @@ public class VMWriter extends BufferedWriter implements AutoCloseable {
   }
 
   /** labelコマンドを書く。 */
-  public void writeLabel(String label) {}
+  public void bufferLabel(String label) {
+    stringBuffer.append("label " + label + "\n");
+  }
 
   /** gotoコマンドを書く。 */
-  public void writeGoto(String label) {}
+  public void bufferGoto(String label) {
+    stringBuffer.append("goto " + label + "\n");
+  }
 
   /** If-gotoコマンドを書く。 */
-  public void writeIf(String label) {}
+  public void bufferIf(String label) {
+    stringBuffer.append("if-goto " + label + "\n");
+  }
 
   /** callコマンドを書く。 */
   public void bufferCall(String name, int nArgs) {
