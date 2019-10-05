@@ -293,7 +293,7 @@ public class CompilationEngine implements AutoCloseable {
           compileLet(classSymbolTable, subroutineSymbolTable, vmWriter);
           break;
         case "while":
-          compileWhile(classSymbolTable, subroutineSymbolTable, line, vmWriter);
+          compileWhile(classSymbolTable, subroutineSymbolTable, vmWriter);
           break;
         case "return":
           compileReturn(subroutineSymbolTable, line, vmWriter);
@@ -462,29 +462,26 @@ public class CompilationEngine implements AutoCloseable {
 
   /** while文をコンパイルする。 TODO ツギココ。 */
   public void compileWhile(
-      SymbolTable classSymbolTable,
-      SymbolTable subroutineSymbolTable,
-      Map<String, String> firstLine,
-      VMWriter vmWriter)
+      SymbolTable classSymbolTable, SymbolTable subroutineSymbolTable, VMWriter vmWriter)
       throws IOException {
 
-    // keyword"while"の書き込み
+    // keyword"while"の読み込み
 
-    // symbol"(" の書き込み
-    var secondLine = parseXMLLine(this.reader.readLine());
+    // symbol"(" の読み込み
+    parseXMLLine(this.reader.readLine());
 
     compileExpression(subroutineSymbolTable, vmWriter);
 
-    // symbol ")" の書き込み
-    var thirdLine = parseXMLLine(this.reader.readLine());
+    // symbol ")" の読み込み
+    parseXMLLine(this.reader.readLine());
 
-    // symbol「{」の書き込み
-    var forthLine = parseXMLLine(this.reader.readLine());
+    // symbol"{"の読み込み
+    parseXMLLine(this.reader.readLine());
 
     var fifthLine = parseXMLLine(this.reader.readLine());
     compileStatements(classSymbolTable, subroutineSymbolTable, fifthLine, vmWriter);
 
-    var closeSymbolLine = Map.of(ELEMENT_TYPE, "symbol", CONTENT, "}", ENCLOSED_CONTENT, " } ");
+    // symbol"}"の読み込み
   }
 
   /**
