@@ -44,16 +44,21 @@ public class SymbolTable {
       case STATIC:
         symbol.setIndex(staticIndex);
         staticIndex++;
+        break;
       case FIELD:
         symbol.setIndex(fieldIndex);
         fieldIndex++;
+        break;
       case VAR:
         symbol.setIndex(varIndex);
         varIndex++;
+        break;
       case ARG:
         symbol.setIndex(argumentIndex);
         argumentIndex++;
+        break;
       case NONE:
+        break;
     }
     table.add(symbol);
   }
@@ -93,13 +98,12 @@ public class SymbolTable {
   private class Identifier {
     private String name;
     private String type;
+    private IdentifierAttr kind;
+    private int index;
 
     public int getIndex() {
       return index;
     }
-
-    private IdentifierAttr kind;
-    private int index;
 
     public IdentifierAttr getKind() {
       return kind;

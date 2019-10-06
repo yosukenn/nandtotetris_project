@@ -1,5 +1,7 @@
 package modules;
 
+import static modules.data.IdentifierAttr.FIELD;
+import static modules.data.IdentifierAttr.NONE;
 import static modules.data.Segment.*;
 
 import java.io.BufferedReader;
@@ -282,7 +284,7 @@ public class CompilationEngine implements AutoCloseable {
     while (true) {
       switch (line.get(CONTENT)) {
         case "do":
-          compileDo(subroutineSymbolTable, line, vmWriter);
+          compileDo(classSymbolTable, subroutineSymbolTable, line, vmWriter);
           break;
         case "let":
           compileLet(classSymbolTable, subroutineSymbolTable, vmWriter);
@@ -291,7 +293,7 @@ public class CompilationEngine implements AutoCloseable {
           compileWhile(classSymbolTable, subroutineSymbolTable, vmWriter);
           break;
         case "return":
-          compileReturn(subroutineSymbolTable, line, vmWriter);
+          compileReturn(classSymbolTable, subroutineSymbolTable, line, vmWriter);
           returnFlg = 1;
           break;
         case "if":
@@ -356,7 +358,10 @@ public class CompilationEngine implements AutoCloseable {
    * @throws IOException
    */
   public void compileDo(
-      SymbolTable subroutineSymbolTable, Map<String, String> firstLine, VMWriter vmWriter)
+      SymbolTable classSymbolTable,
+      SymbolTable subroutineSymbolTable,
+      Map<String, String> firstLine,
+      VMWriter vmWriter)
       throws IOException {
 
     // identifier 変数名 or メソッド名 の読み込み
@@ -372,7 +377,8 @@ public class CompilationEngine implements AutoCloseable {
       // symbol"("
       var fifthLine = parseXMLLine(reader.readLine());
 
-      numOfArgs = compileExpressionList(subroutineSymbolTable, vmWriter); // 引数のプッシュを済ませる。
+      numOfArgs =
+          compileExpressionList(classSymbolTable, subroutineSymbolTable, vmWriter); // 引数のプッシュを済ませる。
 
       // symbol")"
       var sixthLine = parseXMLLine(reader.readLine());
@@ -386,7 +392,7 @@ public class CompilationEngine implements AutoCloseable {
     } else if (thirdLine.get(CONTENT).equals("(")) {
       // メソッドの実行主体が書かれていない場合の処理(privateメソッド)
 
-      numOfArgs = compileExpressionList(subroutineSymbolTable, vmWriter);
+      numOfArgs = compileExpressionList(classSymbolTable, subroutineSymbolTable, vmWriter);
 
       // symbol")"
       var forthLine = parseXMLLine(reader.readLine());
@@ -412,13 +418,14 @@ public class CompilationEngine implements AutoCloseable {
     var secondLine = parseXMLLine(reader.readLine());
     if (secondLine.get(CONTENT).equals("[")) { // TODO 配列は後でやる。
       // 配列宣言"[ iterator ]"部分のコンパイル
-      compileArrayIterator(subroutineSymbolTable, secondLine, vmWriter);
+      compileArrayIterator(classSymbolTable, subroutineSymbolTable, secondLine, vmWriter);
 
       // symbol"="の読み込み
       parseXMLLine(reader.readLine());
     }
 
-    compileExpression(subroutineSymbolTable, vmWriter); // 式が評価され、その結果がスタックにプッシュされる
+    compileExpression(
+        classSymbolTable, subroutineSymbolTable, vmWriter); // 式が評価され、その結果がスタックにプッシュされる
     logicalPop(classSymbolTable, subroutineSymbolTable, vmWriter, firstLine.get(CONTENT));
 
     // symbol";"の読み込み
@@ -449,7 +456,9 @@ public class CompilationEngine implements AutoCloseable {
       case FIELD:
         vmWriter.bufferPop(
             STATIC,
-            classSymbolTable.indexOf(symbolName) + classSymbolTable.indexOf(symbolName) + 1);
+            (int) classSymbolTable.varCount(IdentifierAttr.STATIC)
+                + classSymbolTable.indexOf(symbolName)
+                + 1);
       case NONE:
         throw new IllegalStateException("シンボルテーブルに登録されていない変数ですねぇ。");
     }
@@ -467,7 +476,7 @@ public class CompilationEngine implements AutoCloseable {
 
     // symbol"(" の読み込み
     parseXMLLine(reader.readLine());
-    compileExpression(subroutineSymbolTable, vmWriter);
+    compileExpression(classSymbolTable, subroutineSymbolTable, vmWriter);
 
     // symbol ")" の読み込み
     parseXMLLine(reader.readLine());
@@ -495,7 +504,10 @@ public class CompilationEngine implements AutoCloseable {
    * 関数の返り値をスタックのプッシュした後でreturnコマンドが実行される。
    */
   public void compileReturn(
-      SymbolTable subroutineSymbolTable, Map<String, String> firstLine, VMWriter vmWriter)
+      SymbolTable classSymbolTable,
+      SymbolTable subroutineSymbolTable,
+      Map<String, String> firstLine,
+      VMWriter vmWriter)
       throws IOException {
 
     // keyword"return"
@@ -505,7 +517,7 @@ public class CompilationEngine implements AutoCloseable {
     if (secondLine.get(ELEMENT_TYPE).equals("identifier")
         || secondLine.get(ELEMENT_TYPE).equals("keyword")) {
       reader.reset();
-      compileExpression(subroutineSymbolTable, vmWriter);
+      compileExpression(classSymbolTable, subroutineSymbolTable, vmWriter); // 結果はスタックの一番上にプッシュされる。
 
       parseXMLLine(reader.readLine());
 
@@ -525,7 +537,7 @@ public class CompilationEngine implements AutoCloseable {
     parseXMLLine(reader.readLine());
 
     // if条件式のコンパイル
-    compileExpression(subroutineSymbolTable, vmWriter);
+    compileExpression(classSymbolTable, subroutineSymbolTable, vmWriter);
 
     // symbol")"の読み込み
     parseXMLLine(reader.readLine());
@@ -573,12 +585,13 @@ public class CompilationEngine implements AutoCloseable {
 
   /**
    * 式をコンパイルする。<br>
-   * この結果はスタックにプッシュする。
+   * 演算結果はスタックにプッシュする。
    */
-  public void compileExpression(SymbolTable subroutineSymbolTable, VMWriter vmWriter)
+  public void compileExpression(
+      SymbolTable classSymbolTable, SymbolTable subroutineSymbolTable, VMWriter vmWriter)
       throws IOException {
 
-    var resultMap1 = compileTerm(subroutineSymbolTable, vmWriter);
+    var resultMap1 = compileTerm(classSymbolTable, subroutineSymbolTable, vmWriter);
     if (!resultMap1.containsKey(DO_NOTHING)) {
       vmWriter.bufferPush(
           Segment.fromCode(resultMap1.get(SEGMENT)), Integer.parseInt(resultMap1.get(INDEX)));
@@ -593,7 +606,7 @@ public class CompilationEngine implements AutoCloseable {
         || nextEle.get(CONTENT).equals("-") // x - y
         || nextEle.get(CONTENT).equals("=") // x = y
         || nextEle.get(CONTENT).equals("|")) { // x | y
-      var resultMap2 = compileTerm(subroutineSymbolTable, vmWriter);
+      var resultMap2 = compileTerm(classSymbolTable, subroutineSymbolTable, vmWriter);
       if (!resultMap2.containsKey(DO_NOTHING)) {
         vmWriter.bufferPush(
             Segment.fromCode(resultMap2.get(SEGMENT)), Integer.parseInt(resultMap2.get(INDEX)));
@@ -601,13 +614,13 @@ public class CompilationEngine implements AutoCloseable {
       vmWriter.bufferArithmetic(ArithmeticCommand.fromCode(nextEle.get(CONTENT)));
 
     } else if (nextEle.get(CONTENT).equals("*")) { // x * y
-      var resultMap2 = compileTerm(subroutineSymbolTable, vmWriter);
+      var resultMap2 = compileTerm(classSymbolTable, subroutineSymbolTable, vmWriter);
       vmWriter.bufferPush(
           Segment.fromCode(resultMap2.get(SEGMENT)), Integer.parseInt(resultMap2.get(INDEX)));
       vmWriter.bufferCall(MULTIPLY, 2);
 
     } else if (nextEle.get(CONTENT).equals("/")) { // x / y
-      var resultMap2 = compileTerm(subroutineSymbolTable, vmWriter);
+      var resultMap2 = compileTerm(classSymbolTable, subroutineSymbolTable, vmWriter);
       vmWriter.bufferPush(
           Segment.fromCode(resultMap2.get(SEGMENT)), Integer.parseInt(resultMap2.get(INDEX)));
       vmWriter.bufferCall(DIVIDE, 2);
@@ -621,7 +634,7 @@ public class CompilationEngine implements AutoCloseable {
     /* ----------------------------------------論理演算: <, >, &-------------------------------------- */
     if (secondLine.get(CONTENT).equals("&lt;") // 不等号: <
         || secondLine.get(CONTENT).equals("&gt;")) { // 不等号: >
-      var resultMap2 = compileTerm(subroutineSymbolTable, vmWriter);
+      var resultMap2 = compileTerm(classSymbolTable, subroutineSymbolTable, vmWriter);
       vmWriter.bufferPush(
           Segment.fromCode(resultMap2.get(SEGMENT)), Integer.parseInt(resultMap2.get(INDEX)));
       var operand = secondLine.get(CONTENT).equals("&lt;") ? "<" : ">";
@@ -634,7 +647,7 @@ public class CompilationEngine implements AutoCloseable {
     reader.mark(100);
     var thirdLine = parseXMLLine(reader.readLine()); // and演算子: &
     if (thirdLine.get(CONTENT).equals("&amp;")) {
-      var resultMap2 = compileTerm(subroutineSymbolTable, vmWriter);
+      var resultMap2 = compileTerm(classSymbolTable, subroutineSymbolTable, vmWriter);
       vmWriter.bufferPush(
           Segment.fromCode(resultMap2.get(SEGMENT)), Integer.parseInt(resultMap2.get(INDEX)));
       vmWriter.bufferArithmetic(ArithmeticCommand.fromCode("&"));
@@ -645,7 +658,8 @@ public class CompilationEngine implements AutoCloseable {
   }
 
   /** 式(Expression)の一部分をコンパイルする */
-  public Map<String, String> compileTerm(SymbolTable subroutineSymbolTable, VMWriter vmWriter)
+  public Map<String, String> compileTerm(
+      SymbolTable classSymbolTable, SymbolTable subroutineSymbolTable, VMWriter vmWriter)
       throws IOException {
 
     Map<String, String> resultMap = new HashMap<>();
@@ -653,14 +667,29 @@ public class CompilationEngine implements AutoCloseable {
     var firstLine = parseXMLLine(reader.readLine());
     // ---------------------シンボルテーブルに定義されている変数------------------------
     if (firstLine.get(ELEMENT_TYPE).equals("identifier")) {
-      resultMap =
-          Map.of(
-              SEGMENT,
-              subroutineSymbolTable
-                  .kindOf(firstLine.get(CONTENT))
-                  .getCode(), // TODO IdentifierAttrとSegmentは必ずしも一致しないので、多分ずれてくる。一旦保留。
-              INDEX,
-              String.valueOf(subroutineSymbolTable.indexOf(firstLine.get(CONTENT))));
+      var kind = subroutineSymbolTable.kindOf(firstLine.get(CONTENT));
+      var index = 0;
+      Segment segment = null;
+      if (kind != NONE) {
+        index = subroutineSymbolTable.indexOf(firstLine.get(CONTENT));
+        switch (kind) {
+          case ARG:
+            segment = ARG;
+            break;
+          case VAR:
+            segment = LOCAL;
+            break;
+        }
+      } else {
+        kind = classSymbolTable.kindOf(firstLine.get(CONTENT));
+        index = classSymbolTable.indexOf(firstLine.get(CONTENT));
+        if (kind == FIELD) {
+          index = (int) classSymbolTable.varCount(IdentifierAttr.STATIC) + index + 1;
+        }
+        segment = STATIC;
+      }
+
+      resultMap = Map.of(SEGMENT, segment.getCode(), INDEX, String.valueOf(index));
 
       // ---------------------keyword "this"--------------------------------
     } else if (firstLine.get(CONTENT).equals("this")) {
@@ -685,7 +714,7 @@ public class CompilationEngine implements AutoCloseable {
 
     // ---------------------(x + y) のような括弧で括られた式。---------------------------------
     if (firstLine.get(CONTENT).equals("(")) {
-      compileExpression(subroutineSymbolTable, vmWriter);
+      compileExpression(classSymbolTable, subroutineSymbolTable, vmWriter);
 
       // ")" の読み取り
       var secondLine = parseXMLLine(reader.readLine());
@@ -693,7 +722,7 @@ public class CompilationEngine implements AutoCloseable {
       // ---------------------negate---------------------------------
       // ---------------------not------------------------------------
     } else if (firstLine.get(CONTENT).equals("-") || firstLine.get(CONTENT).equals("~")) {
-      resultMap = compileTerm(subroutineSymbolTable, vmWriter);
+      resultMap = compileTerm(classSymbolTable, subroutineSymbolTable, vmWriter);
       vmWriter.bufferPush(
           Segment.fromCode(resultMap.get(SEGMENT)), Integer.parseInt(resultMap.get(INDEX)));
       var commandCode = firstLine.get(CONTENT).equals("-") ? "negate" : "~";
@@ -706,12 +735,12 @@ public class CompilationEngine implements AutoCloseable {
       var secondLine = parseXMLLine(reader.readLine());
       if (secondLine.get(CONTENT).equals(".")) {
         // サブルーチン呼び出し
-        compileCallSubroutine(subroutineSymbolTable, secondLine, vmWriter);
+        compileCallSubroutine(classSymbolTable, subroutineSymbolTable, secondLine, vmWriter);
         // TODO 引数として関数の返り値を渡すことがありえるのかわからないので対応を保留。
 
       } else if (secondLine.get(CONTENT).equals("[")) {
         // 配列宣言のコンパイル
-        compileArrayIterator(subroutineSymbolTable, secondLine, vmWriter);
+        compileArrayIterator(classSymbolTable, subroutineSymbolTable, secondLine, vmWriter);
         // TODO 引数として配列を渡すことがありえるのかわからないので対応を保留。
 
       } else {
@@ -727,7 +756,8 @@ public class CompilationEngine implements AutoCloseable {
    *
    * @return コンマで区切られた引数の数
    */
-  public int compileExpressionList(SymbolTable subroutineSymbolTable, VMWriter vmWriter)
+  public int compileExpressionList(
+      SymbolTable classSymbolTable, SymbolTable subroutineSymbolTable, VMWriter vmWriter)
       throws IOException {
     var expressionCount = 0; // 引数の数の初期化
 
@@ -745,20 +775,20 @@ public class CompilationEngine implements AutoCloseable {
           || line.get(ELEMENT_TYPE).equals("integerConstant")) {
         reader.reset();
         expressionCount++;
-        compileExpression(subroutineSymbolTable, vmWriter);
+        compileExpression(classSymbolTable, subroutineSymbolTable, vmWriter);
 
       } else if (line.get(ELEMENT_TYPE).equals("stringConstant")) {
         /* -----------------------------------引数 : 文字列--------------------------------- */
         // TODO どうする？おそらくOSのString.new()を使う？
         reader.reset();
         expressionCount++;
-        compileExpression(subroutineSymbolTable, vmWriter);
+        compileExpression(classSymbolTable, subroutineSymbolTable, vmWriter);
 
       } else if (line.get(CONTENT).equals("(")) {
         /* -----------------------------------引数 : (1 + 2)などの式。--------------------------------- */
         reader.reset();
         expressionCount++;
-        compileExpression(subroutineSymbolTable, vmWriter);
+        compileExpression(classSymbolTable, subroutineSymbolTable, vmWriter);
 
         /* -----------------------------------引数がコンマ区切りで複数存在する場合--------------------------------- */
       } else if (line.get(CONTENT).equals(",")) {
@@ -778,7 +808,10 @@ public class CompilationEngine implements AutoCloseable {
    * @return コンマで区切られた引数の数
    */
   private int compileCallSubroutine(
-      SymbolTable subroutineSymbolTable, Map<String, String> firstLine, VMWriter vmWriter)
+      SymbolTable classSymbolTable,
+      SymbolTable subroutineSymbolTable,
+      Map<String, String> firstLine,
+      VMWriter vmWriter)
       throws IOException {
     // symbol「.」の出力
 
@@ -788,7 +821,7 @@ public class CompilationEngine implements AutoCloseable {
     // symbol「(」の出力
     var thirdLine = parseXMLLine(reader.readLine());
 
-    var numOfExpression = compileExpressionList(subroutineSymbolTable, vmWriter);
+    var numOfExpression = compileExpressionList(classSymbolTable, subroutineSymbolTable, vmWriter);
 
     // symbol「)」の出力
     var sixthLine = parseXMLLine(reader.readLine());
@@ -797,12 +830,15 @@ public class CompilationEngine implements AutoCloseable {
   }
 
   private void compileArrayIterator(
-      SymbolTable subroutineSymbolTable, Map<String, String> firstLine, VMWriter vmWriter)
+      SymbolTable classSymbolTable,
+      SymbolTable subroutineSymbolTable,
+      Map<String, String> firstLine,
+      VMWriter vmWriter)
       throws IOException {
     // symbol"["のコンパイル
 
     // 配列イテレータのコンパイル
-    compileExpression(subroutineSymbolTable, vmWriter);
+    compileExpression(classSymbolTable, subroutineSymbolTable, vmWriter);
 
     // symbol「]」のコンパイル
     reader.readLine();
