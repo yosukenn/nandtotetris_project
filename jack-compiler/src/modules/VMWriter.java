@@ -50,11 +50,23 @@ public class VMWriter extends BufferedWriter implements AutoCloseable {
         stringBuffer.append("neg\n");
         break;
       case EQ:
+        stringBuffer.append("eq\n");
+        break;
       case GT:
+        stringBuffer.append("gt\n");
+        break;
       case LT:
+        stringBuffer.append("lt\n");
+        break;
       case OR:
+        stringBuffer.append("or\n");
+        break;
       case AND:
+        stringBuffer.append("and\n");
+        break;
       case NOT:
+        stringBuffer.append("not\n");
+        break;
     }
   }
 

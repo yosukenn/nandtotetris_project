@@ -585,7 +585,7 @@ public class CompilationEngine implements AutoCloseable {
 
   /**
    * 式をコンパイルする。<br>
-   * 演算結果はスタックにプッシュする。
+   * 演算結果はスタックにプッシュする。 TODO イマココ。eq, gt, ltなどの論理演算のコンパイル処理を追加中
    */
   public void compileExpression(
       SymbolTable classSymbolTable, SymbolTable subroutineSymbolTable, VMWriter vmWriter)
