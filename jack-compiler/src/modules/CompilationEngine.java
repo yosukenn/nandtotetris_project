@@ -53,10 +53,10 @@ public class CompilationEngine implements AutoCloseable {
   private static final String LABEL = "label";
 
   public CompilationEngine(File parentDir, String inputFile, String outputFile) throws IOException {
-    this.parentPath = parentDir;
+    parentPath = parentDir;
 
-    this.reader = new BufferedReader(new FileReader(inputFile));
-    var firstLine = this.reader.readLine();
+    reader = new BufferedReader(new FileReader(inputFile));
+    var firstLine = reader.readLine();
     if (!firstLine.equals("<tokens>")) {
       throw new IllegalArgumentException("入力ファイルの形式が正しくありません。firstLine=" + firstLine);
     }
@@ -64,30 +64,30 @@ public class CompilationEngine implements AutoCloseable {
 
   @Override
   public void close() throws IOException {
-    this.reader.close();
+    reader.close();
   }
 
   public void compileClass() throws IOException {
     // シンボルテーブルの生成
     var classSymbolTable = new SymbolTable();
 
-    var firstLine = parseXMLLine(this.reader.readLine());
+    var firstLine = parseXMLLine(reader.readLine());
     if (!firstLine.get(CONTENT).equals("class")) {
       throw new IllegalStateException();
     }
 
     // クラス名となるidentifier読み込み。クラス名はシンボルテーブルに記録しない。
-    var secondLine = parseXMLLine(this.reader.readLine());
-    this.compiledClassName = secondLine.get(CONTENT);
+    var secondLine = parseXMLLine(reader.readLine());
+    compiledClassName = secondLine.get(CONTENT);
 
     // VMWriterの生成
     try (var vmWriter = new VMWriter(new File(parentPath, compiledClassName + ".vm"))) {
       // symbol"{"の読み込み
-      parseXMLLine(this.reader.readLine());
+      parseXMLLine(reader.readLine());
 
       // xml要素の種類によって適切な処理を呼び出す。
       while (true) {
-        var thirdLine = parseXMLLine(this.reader.readLine());
+        var thirdLine = parseXMLLine(reader.readLine());
         switch (thirdLine.get(CONTENT)) {
           case STATIC_KEYWORD:
           case FIELD_KEYWORD:
@@ -146,10 +146,10 @@ public class CompilationEngine implements AutoCloseable {
     // keyword "static", "field"の読み込み
 
     // データ型を表すkeywordの読み込み
-    var secondLine = parseXMLLine(this.reader.readLine());
+    var secondLine = parseXMLLine(reader.readLine());
 
     // 変数名を表すidentifierの読み込み
-    var thirdLine = parseXMLLine(this.reader.readLine());
+    var thirdLine = parseXMLLine(reader.readLine());
 
     // identifierのシンボルテーブルへの登録。
     classSymbolTable.define(
@@ -157,14 +157,14 @@ public class CompilationEngine implements AutoCloseable {
         secondLine.get(CONTENT),
         IdentifierAttr.fromCode(stringMap.get(CONTENT)));
 
-    var forthLine = parseXMLLine(this.reader.readLine());
+    var forthLine = parseXMLLine(reader.readLine());
     while (true) {
       if (forthLine.get(CONTENT).equals(";")) {
         break;
       } else if (forthLine.get(CONTENT).equals(",")) { // ","で区切られて複数の変数を宣言している場合
 
         // 変数名を表すidentifierの読み込み
-        var fifthLine = parseXMLLine(this.reader.readLine());
+        var fifthLine = parseXMLLine(reader.readLine());
 
         // identifierのシンボルテーブルへの登録。
         classSymbolTable.define(
@@ -172,7 +172,7 @@ public class CompilationEngine implements AutoCloseable {
             secondLine.get(CONTENT),
             IdentifierAttr.fromCode(stringMap.get(CONTENT)));
 
-        forthLine = parseXMLLine(this.reader.readLine());
+        forthLine = parseXMLLine(reader.readLine());
         continue;
       }
     }
@@ -189,18 +189,18 @@ public class CompilationEngine implements AutoCloseable {
     // keyword "function", "constructor", "method"の書き込み
 
     // データ型を表すkeywordの書き込み
-    var secondLine = parseXMLLine(this.reader.readLine());
+    var secondLine = parseXMLLine(reader.readLine());
 
     // メソッド、ファンクション、コンストラクタ名identifierの書き込み
-    var thirdLine = parseXMLLine(this.reader.readLine());
+    var thirdLine = parseXMLLine(reader.readLine());
 
     // symbol「(」の書き込み
-    var forthLine = parseXMLLine(this.reader.readLine());
+    var forthLine = parseXMLLine(reader.readLine());
 
     compileParameterList(subroutineSymbolTable);
 
     // symbol「)」の書き込み
-    var fifthLine = parseXMLLine(this.reader.readLine());
+    var fifthLine = parseXMLLine(reader.readLine());
 
     // 「{ statements }」の書き込み
     compileSubroutineBody(classSymbolTable, subroutineSymbolTable, vmWriter);
@@ -217,10 +217,10 @@ public class CompilationEngine implements AutoCloseable {
       throws IOException {
 
     // symbol「{」の書き込み
-    var firstLine = parseXMLLine(this.reader.readLine());
+    var firstLine = parseXMLLine(reader.readLine());
 
     while (true) {
-      var secondLine = parseXMLLine(this.reader.readLine());
+      var secondLine = parseXMLLine(reader.readLine());
       if (secondLine
           .get(CONTENT)
           .equals("var")) { // TODO { subroutineBody } の冒頭でvar宣言がされることを前提としているコードなので欠陥がある。
@@ -237,29 +237,29 @@ public class CompilationEngine implements AutoCloseable {
 
   public void compileParameterList(SymbolTable subroutineSymbolTable) throws IOException {
 
-    this.reader.mark(100);
-    var firstLine = parseXMLLine(this.reader.readLine()); // 引数の型を表している。
+    reader.mark(100);
+    var firstLine = parseXMLLine(reader.readLine()); // 引数の型を表している。
     if (firstLine.get(ELEMENT_TYPE).equals("keyword")) {
       while (true) {
         // identifier(引数の変数名)を読み込み
-        var secondLine = parseXMLLine(this.reader.readLine());
+        var secondLine = parseXMLLine(reader.readLine());
 
         // identifierをシンボルテーブルに登録する。
         subroutineSymbolTable.define(
             secondLine.get(CONTENT), firstLine.get(CONTENT), IdentifierAttr.ARG);
 
         // まだ引数があったらコンパイル。なかったらcompileParameterListを終了する。
-        this.reader.mark(100);
-        var thirdLine = parseXMLLine(this.reader.readLine());
+        reader.mark(100);
+        var thirdLine = parseXMLLine(reader.readLine());
         if (thirdLine.get(CONTENT).equals(",")) {
-          firstLine = parseXMLLine(this.reader.readLine());
+          firstLine = parseXMLLine(reader.readLine());
         } else if (thirdLine.get(CONTENT).equals(")")) {
-          this.reader.reset();
+          reader.reset();
           break;
         }
       }
     } else {
-      this.reader.reset();
+      reader.reset();
     }
   }
 
@@ -298,7 +298,7 @@ public class CompilationEngine implements AutoCloseable {
           compileIf(classSymbolTable, subroutineSymbolTable, vmWriter);
           break;
       }
-      var readLine = this.reader.readLine();
+      var readLine = reader.readLine();
       if (readLine == null) {
         break;
       }
@@ -317,17 +317,17 @@ public class CompilationEngine implements AutoCloseable {
     // keyword「var」の出力
 
     // keyword dataType の出力
-    var secondLine = parseXMLLine(this.reader.readLine());
+    var secondLine = parseXMLLine(reader.readLine());
 
     // identifierの出力
-    var thirdLine = parseXMLLine(this.reader.readLine());
+    var thirdLine = parseXMLLine(reader.readLine());
 
     // シンボルテーブルへの登録
     subroutineSymbolTable.define(
         thirdLine.get(CONTENT), secondLine.get(CONTENT), IdentifierAttr.VAR);
 
     // 変数の出力
-    var forthLine = parseXMLLine(this.reader.readLine());
+    var forthLine = parseXMLLine(reader.readLine());
     while (true) {
       if (forthLine.get(CONTENT).equals(";")) {
         // symbol「;」の書き込み
@@ -335,13 +335,13 @@ public class CompilationEngine implements AutoCloseable {
       } else if (forthLine.get(CONTENT).equals(",")) {
 
         // 変数名を表すidentifier の書き込み
-        var fifthLine = parseXMLLine(this.reader.readLine());
+        var fifthLine = parseXMLLine(reader.readLine());
 
         // シンボルテーブルへの登録
         subroutineSymbolTable.define(
             fifthLine.get(CONTENT), secondLine.get(CONTENT), IdentifierAttr.VAR);
 
-        forthLine = parseXMLLine(this.reader.readLine());
+        forthLine = parseXMLLine(reader.readLine());
         continue;
       }
     }
@@ -360,25 +360,25 @@ public class CompilationEngine implements AutoCloseable {
       throws IOException {
 
     // identifier 変数名 or メソッド名 の読み込み
-    var secondLine = parseXMLLine(this.reader.readLine());
+    var secondLine = parseXMLLine(reader.readLine());
 
     var numOfArgs = 0; // 呼び出し先の関数の引数の数
 
-    var thirdLine = parseXMLLine(this.reader.readLine());
+    var thirdLine = parseXMLLine(reader.readLine());
     if (thirdLine.get(CONTENT).equals(".")) {
       // identifier
-      var forthLine = parseXMLLine(this.reader.readLine());
+      var forthLine = parseXMLLine(reader.readLine());
 
       // symbol"("
-      var fifthLine = parseXMLLine(this.reader.readLine());
+      var fifthLine = parseXMLLine(reader.readLine());
 
       numOfArgs = compileExpressionList(subroutineSymbolTable, vmWriter); // 引数のプッシュを済ませる。
 
       // symbol")"
-      var sixthLine = parseXMLLine(this.reader.readLine());
+      var sixthLine = parseXMLLine(reader.readLine());
 
       // symbol";"
-      var seventhLine = parseXMLLine(this.reader.readLine());
+      var seventhLine = parseXMLLine(reader.readLine());
 
       vmWriter.bufferCall(
           secondLine.get(CONTENT) + thirdLine.get(CONTENT) + forthLine.get(CONTENT), numOfArgs);
@@ -389,10 +389,10 @@ public class CompilationEngine implements AutoCloseable {
       numOfArgs = compileExpressionList(subroutineSymbolTable, vmWriter);
 
       // symbol")"
-      var forthLine = parseXMLLine(this.reader.readLine());
+      var forthLine = parseXMLLine(reader.readLine());
 
       // symbol";"
-      var fifthLine = parseXMLLine(this.reader.readLine());
+      var fifthLine = parseXMLLine(reader.readLine());
 
       vmWriter.bufferCall(compiledClassName + "." + secondLine.get(CONTENT), numOfArgs);
     }
@@ -407,22 +407,22 @@ public class CompilationEngine implements AutoCloseable {
       throws IOException {
 
     // identifierの読み込み
-    var firstLine = parseXMLLine(this.reader.readLine());
+    var firstLine = parseXMLLine(reader.readLine());
 
-    var secondLine = parseXMLLine(this.reader.readLine());
+    var secondLine = parseXMLLine(reader.readLine());
     if (secondLine.get(CONTENT).equals("[")) { // TODO 配列は後でやる。
       // 配列宣言"[ iterator ]"部分のコンパイル
       compileArrayIterator(subroutineSymbolTable, secondLine, vmWriter);
 
       // symbol"="の読み込み
-      parseXMLLine(this.reader.readLine());
+      parseXMLLine(reader.readLine());
     }
 
     compileExpression(subroutineSymbolTable, vmWriter); // 式が評価され、その結果がスタックにプッシュされる
     logicalPop(classSymbolTable, subroutineSymbolTable, vmWriter, firstLine.get(CONTENT));
 
     // symbol";"の読み込み
-    parseXMLLine(this.reader.readLine());
+    parseXMLLine(reader.readLine());
   }
 
   /** スタックから値をポップし、与えられたシンボルに適したメモリセグメントにその値を割り当てる。 */
@@ -462,13 +462,15 @@ public class CompilationEngine implements AutoCloseable {
 
     // keyword"while"の読み込み
 
-    // symbol"(" の読み込み
-    parseXMLLine(this.reader.readLine());
+    var thirdLabelIndex = vmWriter.getCurrentLadelIndex();
+    vmWriter.bufferLabel(LABEL + thirdLabelIndex);
 
+    // symbol"(" の読み込み
+    parseXMLLine(reader.readLine());
     compileExpression(subroutineSymbolTable, vmWriter);
 
     // symbol ")" の読み込み
-    parseXMLLine(this.reader.readLine());
+    parseXMLLine(reader.readLine());
 
     var firstLabelIndex = vmWriter.getCurrentLadelIndex();
     var secondLabelIndex = vmWriter.getCurrentLadelIndex();
@@ -476,15 +478,16 @@ public class CompilationEngine implements AutoCloseable {
     vmWriter.bufferIf(LABEL + secondLabelIndex);
 
     // symbol"{"の読み込み
-    parseXMLLine(this.reader.readLine());
+    parseXMLLine(reader.readLine());
 
-    var fifthLine = parseXMLLine(this.reader.readLine());
+    var fifthLine = parseXMLLine(reader.readLine());
     compileStatements(classSymbolTable, subroutineSymbolTable, fifthLine, vmWriter);
 
-    vmWriter.bufferGoto(LABEL + firstLabelIndex);
-    vmWriter.bufferLabel(LABEL + secondLabelIndex); // TODO 2週目からはループ条件がスタックにプッシュされているとは限らない。
+    vmWriter.bufferGoto(LABEL + thirdLabelIndex); // 条件式の演算をし直すようにしたけど、いいのか？
 
     // symbol"}"の読み込み
+
+    vmWriter.bufferLabel(LABEL + secondLabelIndex);
   }
 
   /**
@@ -497,14 +500,14 @@ public class CompilationEngine implements AutoCloseable {
 
     // keyword"return"
 
-    this.reader.mark(100);
-    var secondLine = parseXMLLine(this.reader.readLine());
+    reader.mark(100);
+    var secondLine = parseXMLLine(reader.readLine());
     if (secondLine.get(ELEMENT_TYPE).equals("identifier")
         || secondLine.get(ELEMENT_TYPE).equals("keyword")) {
-      this.reader.reset();
+      reader.reset();
       compileExpression(subroutineSymbolTable, vmWriter);
 
-      parseXMLLine(this.reader.readLine());
+      parseXMLLine(reader.readLine());
 
     } else if (secondLine.get(ELEMENT_TYPE).equals("symbol")) {
     }
@@ -519,13 +522,13 @@ public class CompilationEngine implements AutoCloseable {
     // keyword"if"
 
     // symbol"("の読み込み
-    parseXMLLine(this.reader.readLine());
+    parseXMLLine(reader.readLine());
 
     // if条件式のコンパイル
     compileExpression(subroutineSymbolTable, vmWriter);
 
     // symbol")"の読み込み
-    parseXMLLine(this.reader.readLine());
+    parseXMLLine(reader.readLine());
 
     // symbol"{"の読み込み
 
@@ -537,32 +540,32 @@ public class CompilationEngine implements AutoCloseable {
     vmWriter.bufferLabel(LABEL + firstLabelIndex);
 
     // statementsのコンパイル
-    var forthLine = parseXMLLine(this.reader.readLine());
+    var forthLine = parseXMLLine(reader.readLine());
     compileStatements(classSymbolTable, subroutineSymbolTable, forthLine, vmWriter);
 
     vmWriter.bufferGoto(LABEL + secondLabelIndex);
 
     // symbol"}"の読み込み
 
-    this.reader.mark(100); // 取り消せるようにマーク
-    var sixthLine = parseXMLLine(this.reader.readLine());
+    reader.mark(100); // 取り消せるようにマーク
+    var sixthLine = parseXMLLine(reader.readLine());
     if (sixthLine.get(CONTENT).equals("else")) {
       // keyword"else"
 
       vmWriter.bufferLabel(LABEL + thirdLabelIndex);
 
       // symbol"{"の読み込み
-      this.reader.readLine();
+      reader.readLine();
 
       // statementsのコンパイル
       compileStatements(
-          classSymbolTable, subroutineSymbolTable, parseXMLLine(this.reader.readLine()), vmWriter);
+          classSymbolTable, subroutineSymbolTable, parseXMLLine(reader.readLine()), vmWriter);
 
       vmWriter.bufferGoto(LABEL + secondLabelIndex);
 
       // symbol"}"の読み込み
     } else {
-      this.reader.reset();
+      reader.reset();
     }
 
     vmWriter.bufferLabel(LABEL + thirdLabelIndex);
@@ -581,9 +584,8 @@ public class CompilationEngine implements AutoCloseable {
           Segment.fromCode(resultMap1.get(SEGMENT)), Integer.parseInt(resultMap1.get(INDEX)));
     }
 
-    // TODO "|", "*", "/", "+"が複数回出てくる場合が出てきたら対応を追加する。
-    this.reader.mark(100);
-    var nextEle = parseXMLLine(this.reader.readLine());
+    reader.mark(100);
+    var nextEle = parseXMLLine(reader.readLine());
 
     /* ----------------------------------------算術演算-------------------------------------- */
     /* ----------------------------------------論理演算-------------------------------------- */
@@ -611,11 +613,11 @@ public class CompilationEngine implements AutoCloseable {
       vmWriter.bufferCall(DIVIDE, 2);
 
     } else {
-      this.reader.reset();
+      reader.reset();
     }
 
-    this.reader.mark(100);
-    var secondLine = parseXMLLine(this.reader.readLine());
+    reader.mark(100);
+    var secondLine = parseXMLLine(reader.readLine());
     /* ----------------------------------------論理演算: <, >, &-------------------------------------- */
     if (secondLine.get(CONTENT).equals("&lt;") // 不等号: <
         || secondLine.get(CONTENT).equals("&gt;")) { // 不等号: >
@@ -626,19 +628,19 @@ public class CompilationEngine implements AutoCloseable {
       vmWriter.bufferArithmetic(ArithmeticCommand.fromCode(operand));
 
     } else {
-      this.reader.reset();
+      reader.reset();
     }
 
-    this.reader.mark(100);
-    var thirdLine = parseXMLLine(this.reader.readLine()); // and演算子: &
-    if (thirdLine.get(CONTENT).equals("&amp;")) { // TODO "&"が複数出てくるパターン対策。
+    reader.mark(100);
+    var thirdLine = parseXMLLine(reader.readLine()); // and演算子: &
+    if (thirdLine.get(CONTENT).equals("&amp;")) {
       var resultMap2 = compileTerm(subroutineSymbolTable, vmWriter);
       vmWriter.bufferPush(
           Segment.fromCode(resultMap2.get(SEGMENT)), Integer.parseInt(resultMap2.get(INDEX)));
       vmWriter.bufferArithmetic(ArithmeticCommand.fromCode("&"));
 
     } else {
-      this.reader.reset();
+      reader.reset();
     }
   }
 
@@ -648,7 +650,7 @@ public class CompilationEngine implements AutoCloseable {
 
     Map<String, String> resultMap = new HashMap<>();
 
-    var firstLine = parseXMLLine(this.reader.readLine());
+    var firstLine = parseXMLLine(reader.readLine());
     // ---------------------シンボルテーブルに定義されている変数------------------------
     if (firstLine.get(ELEMENT_TYPE).equals("identifier")) {
       resultMap =
@@ -686,7 +688,7 @@ public class CompilationEngine implements AutoCloseable {
       compileExpression(subroutineSymbolTable, vmWriter);
 
       // ")" の読み取り
-      var secondLine = parseXMLLine(this.reader.readLine());
+      var secondLine = parseXMLLine(reader.readLine());
 
       // ---------------------negate---------------------------------
       // ---------------------not------------------------------------
@@ -700,8 +702,8 @@ public class CompilationEngine implements AutoCloseable {
       return Map.of(DO_NOTHING, "do nothing"); // 何もしないのでNO_NOTHINGキーを返す。
 
     } else {
-      this.reader.mark(100);
-      var secondLine = parseXMLLine(this.reader.readLine());
+      reader.mark(100);
+      var secondLine = parseXMLLine(reader.readLine());
       if (secondLine.get(CONTENT).equals(".")) {
         // サブルーチン呼び出し
         compileCallSubroutine(subroutineSymbolTable, secondLine, vmWriter);
@@ -713,7 +715,7 @@ public class CompilationEngine implements AutoCloseable {
         // TODO 引数として配列を渡すことがありえるのかわからないので対応を保留。
 
       } else {
-        this.reader.reset();
+        reader.reset();
       }
     }
 
@@ -730,8 +732,8 @@ public class CompilationEngine implements AutoCloseable {
     var expressionCount = 0; // 引数の数の初期化
 
     while (true) {
-      this.reader.mark(100);
-      var line = parseXMLLine(this.reader.readLine());
+      reader.mark(100);
+      var line = parseXMLLine(reader.readLine());
 
       /* -----------------------------------引数 : "this", "true", "false"------------------------------- */
       if (line.get(ELEMENT_TYPE).equals("keyword")
@@ -741,20 +743,20 @@ public class CompilationEngine implements AutoCloseable {
           || line.get(ELEMENT_TYPE).equals("identifier")
           /* -----------------------------------引数 : 定数--------------------------------- */
           || line.get(ELEMENT_TYPE).equals("integerConstant")) {
-        this.reader.reset();
+        reader.reset();
         expressionCount++;
         compileExpression(subroutineSymbolTable, vmWriter);
 
       } else if (line.get(ELEMENT_TYPE).equals("stringConstant")) {
         /* -----------------------------------引数 : 文字列--------------------------------- */
         // TODO どうする？おそらくOSのString.new()を使う？
-        this.reader.reset();
+        reader.reset();
         expressionCount++;
         compileExpression(subroutineSymbolTable, vmWriter);
 
       } else if (line.get(CONTENT).equals("(")) {
         /* -----------------------------------引数 : (1 + 2)などの式。--------------------------------- */
-        this.reader.reset();
+        reader.reset();
         expressionCount++;
         compileExpression(subroutineSymbolTable, vmWriter);
 
@@ -763,7 +765,7 @@ public class CompilationEngine implements AutoCloseable {
 
         /* -----------------------------------引数リスト終わり--------------------------------- */
       } else {
-        this.reader.reset();
+        reader.reset();
         break;
       }
     }
@@ -781,15 +783,15 @@ public class CompilationEngine implements AutoCloseable {
     // symbol「.」の出力
 
     // identifierの出力
-    var secondLine = parseXMLLine(this.reader.readLine());
+    var secondLine = parseXMLLine(reader.readLine());
 
     // symbol「(」の出力
-    var thirdLine = parseXMLLine(this.reader.readLine());
+    var thirdLine = parseXMLLine(reader.readLine());
 
     var numOfExpression = compileExpressionList(subroutineSymbolTable, vmWriter);
 
     // symbol「)」の出力
-    var sixthLine = parseXMLLine(this.reader.readLine());
+    var sixthLine = parseXMLLine(reader.readLine());
 
     return numOfExpression;
   }
@@ -803,6 +805,6 @@ public class CompilationEngine implements AutoCloseable {
     compileExpression(subroutineSymbolTable, vmWriter);
 
     // symbol「]」のコンパイル
-    this.reader.readLine();
+    reader.readLine();
   }
 }
