@@ -531,7 +531,9 @@ public class CompilationEngine implements AutoCloseable {
 
     var firstLabelIndex = vmWriter.getCurrentLadelIndex();
     var secondLabelIndex = vmWriter.getCurrentLadelIndex();
+    var thirdLabelIndex = vmWriter.getCurrentLadelIndex();
     vmWriter.bufferIf(LABEL + firstLabelIndex);
+    vmWriter.bufferGoto(LABEL + thirdLabelIndex); // TODO else分岐のないif文の場合不要だが、現状どうすればいいのかわからない。
     vmWriter.bufferLabel(LABEL + firstLabelIndex);
 
     // statementsのコンパイル
@@ -547,6 +549,8 @@ public class CompilationEngine implements AutoCloseable {
     if (sixthLine.get(CONTENT).equals("else")) {
       // keyword"else"
 
+      vmWriter.bufferLabel(LABEL + thirdLabelIndex);
+
       // symbol"{"の読み込み
       this.reader.readLine();
 
@@ -554,10 +558,14 @@ public class CompilationEngine implements AutoCloseable {
       compileStatements(
           classSymbolTable, subroutineSymbolTable, parseXMLLine(this.reader.readLine()), vmWriter);
 
+      vmWriter.bufferGoto(LABEL + secondLabelIndex);
+
       // symbol"}"の読み込み
     } else {
-      this.reader.reset(); // TODO 読み込んだ結果"else"がないIf文だった場合、ちゃんと読み込みを取り消せられているか確認。
+      this.reader.reset();
     }
+
+    vmWriter.bufferLabel(LABEL + thirdLabelIndex);
   }
 
   /**
