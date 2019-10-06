@@ -1,9 +1,6 @@
 package modules;
 
-import static modules.data.Segment.ARG;
-import static modules.data.Segment.CONST;
-import static modules.data.Segment.LOCAL;
-import static modules.data.Segment.STATIC;
+import static modules.data.Segment.*;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -16,11 +13,6 @@ import java.util.regex.Pattern;
 import modules.data.ArithmeticCommand;
 import modules.data.IdentifierAttr;
 import modules.data.Segment;
-
-/*
-TODO 修正できる点（多分やらないけど）
- - compileXX 内でwhile文で繰り返し処理をしなくても、再帰的にメソッドを呼び出せばもっとシンプルにかける。
- */
 
 /**
  * 再帰によるトップダウン式の解析器<br>
@@ -56,6 +48,9 @@ public class CompilationEngine implements AutoCloseable {
   // OSの関数名
   private static final String MULTIPLY = "Math.multiply";
   private static final String DIVIDE = "Math.divide";
+
+  // ラベル命名用文字列
+  private static final String LABEL = "label";
 
   public CompilationEngine(File parentDir, String inputFile, String outputFile) throws IOException {
     this.parentPath = parentDir;
@@ -300,7 +295,7 @@ public class CompilationEngine implements AutoCloseable {
           returnFlg = 1;
           break;
         case "if":
-          compileIf(classSymbolTable, subroutineSymbolTable, line, vmWriter);
+          compileIf(classSymbolTable, subroutineSymbolTable, vmWriter);
           break;
       }
       var readLine = this.reader.readLine();
@@ -472,13 +467,13 @@ public class CompilationEngine implements AutoCloseable {
 
     compileExpression(subroutineSymbolTable, vmWriter);
 
-    var firtLabelIndex = vmWriter.getCurrentLadelIndex();
-    var secondLabelIndex = vmWriter.getCurrentLadelIndex();
-    vmWriter.bufferLabel("label" + firtLabelIndex);
-    vmWriter.bufferIf("label" + secondLabelIndex);
-
     // symbol ")" の読み込み
     parseXMLLine(this.reader.readLine());
+
+    var firstLabelIndex = vmWriter.getCurrentLadelIndex();
+    var secondLabelIndex = vmWriter.getCurrentLadelIndex();
+    vmWriter.bufferLabel(LABEL + firstLabelIndex);
+    vmWriter.bufferIf(LABEL + secondLabelIndex);
 
     // symbol"{"の読み込み
     parseXMLLine(this.reader.readLine());
@@ -486,8 +481,8 @@ public class CompilationEngine implements AutoCloseable {
     var fifthLine = parseXMLLine(this.reader.readLine());
     compileStatements(classSymbolTable, subroutineSymbolTable, fifthLine, vmWriter);
 
-    vmWriter.bufferGoto("label" + firtLabelIndex);
-    vmWriter.bufferLabel("label" + secondLabelIndex);
+    vmWriter.bufferGoto(LABEL + firstLabelIndex);
+    vmWriter.bufferLabel(LABEL + secondLabelIndex); // TODO 2週目からはループ条件がスタックにプッシュされているとは限らない。
 
     // symbol"}"の読み込み
   }
@@ -518,46 +513,48 @@ public class CompilationEngine implements AutoCloseable {
   }
 
   public void compileIf(
-      SymbolTable classSymbolTable,
-      SymbolTable subroutineSymbolTable,
-      Map<String, String> firstLine,
-      VMWriter vmWriter)
+      SymbolTable classSymbolTable, SymbolTable subroutineSymbolTable, VMWriter vmWriter)
       throws IOException {
 
-    // keyword"if"のコンパイル
+    // keyword"if"
 
-    // symbol"("のコンパイル
-    var secondLine = parseXMLLine(this.reader.readLine());
+    // symbol"("の読み込み
+    parseXMLLine(this.reader.readLine());
 
     // if条件式のコンパイル
     compileExpression(subroutineSymbolTable, vmWriter);
 
-    // symbol")"のコンパイル
-    var thirdLine = parseXMLLine(this.reader.readLine());
+    // symbol")"の読み込み
+    parseXMLLine(this.reader.readLine());
 
-    // symbol"{"のコンパイル
+    // symbol"{"の読み込み
+
+    var firstLabelIndex = vmWriter.getCurrentLadelIndex();
+    var secondLabelIndex = vmWriter.getCurrentLadelIndex();
+    vmWriter.bufferIf(LABEL + firstLabelIndex);
+    vmWriter.bufferLabel(LABEL + firstLabelIndex);
 
     // statementsのコンパイル
     var forthLine = parseXMLLine(this.reader.readLine());
     compileStatements(classSymbolTable, subroutineSymbolTable, forthLine, vmWriter);
 
-    // symbol"}"のコンパイル
-    var fifthLine = Map.of(ELEMENT_TYPE, "symbol", CONTENT, "}", ENCLOSED_CONTENT, " } ");
+    vmWriter.bufferGoto(LABEL + secondLabelIndex);
+
+    // symbol"}"の読み込み
 
     this.reader.mark(100); // 取り消せるようにマーク
     var sixthLine = parseXMLLine(this.reader.readLine());
     if (sixthLine.get(CONTENT).equals("else")) {
-      // keyword"else"のコンパイル
+      // keyword"else"
 
-      // symbol"{"のコンパイル
+      // symbol"{"の読み込み
       this.reader.readLine();
 
       // statementsのコンパイル
       compileStatements(
           classSymbolTable, subroutineSymbolTable, parseXMLLine(this.reader.readLine()), vmWriter);
 
-      // symbol"}"のコンパイル
-      var seventhLine = Map.of(ELEMENT_TYPE, "symbol", CONTENT, "}", ENCLOSED_CONTENT, " } ");
+      // symbol"}"の読み込み
     } else {
       this.reader.reset(); // TODO 読み込んだ結果"else"がないIf文だった場合、ちゃんと読み込みを取り消せられているか確認。
     }
@@ -565,7 +562,7 @@ public class CompilationEngine implements AutoCloseable {
 
   /**
    * 式をコンパイルする。<br>
-   * compileExpressionList()から呼ばれた場合のために、引数となるこれらをスタックにプッシュする。
+   * この結果はスタックにプッシュする。
    */
   public void compileExpression(SymbolTable subroutineSymbolTable, VMWriter vmWriter)
       throws IOException {
