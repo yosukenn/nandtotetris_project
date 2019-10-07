@@ -103,6 +103,7 @@ public class VMWriter extends BufferedWriter implements AutoCloseable {
   /** string buffer に溜め込んだ文字列をvmファイルに書き込む。 */
   public void writeStringBuffer() throws IOException {
     write(stringBuffer.toString());
+    stringBuffer.setLength(0); // バッファのクリア
   }
 
   /** 出力ファイルを閉じる。 */

@@ -738,8 +738,10 @@ public class CompilationEngine implements AutoCloseable {
       // ---------------------not------------------------------------
     } else if (firstLine.get(CONTENT).equals("-") || firstLine.get(CONTENT).equals("~")) {
       resultMap = compileTerm(classSymbolTable, subroutineSymbolTable, vmWriter);
-      vmWriter.bufferPush(
-          Segment.fromCode(resultMap.get(SEGMENT)), Integer.parseInt(resultMap.get(INDEX)));
+      if (!resultMap.containsKey(DO_NOTHING)) {
+        vmWriter.bufferPush(
+            Segment.fromCode(resultMap.get(SEGMENT)), Integer.parseInt(resultMap.get(INDEX)));
+      }
       var commandCode = firstLine.get(CONTENT).equals("-") ? "negate" : "~";
       vmWriter.bufferArithmetic(ArithmeticCommand.fromCode(commandCode));
 
