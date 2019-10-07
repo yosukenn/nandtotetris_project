@@ -65,7 +65,7 @@ public class SymbolTable {
 
   /** 引数で与えられた属性について、それが現在のスコープで定義されている数を返す。 */
   public long varCount(IdentifierAttr kind) {
-    return table.stream().filter(identifier -> identifier.kind == kind).count();
+    return table.stream().filter(identifier -> identifier.getKind() == kind).count();
   }
 
   /**
@@ -74,7 +74,7 @@ public class SymbolTable {
    */
   public IdentifierAttr kindOf(String name) {
     return table.stream()
-        .filter(identifier -> identifier.name.equals(name))
+        .filter(identifier -> identifier.getName().equals(name))
         .findFirst()
         .orElse(new Identifier(NONE))
         .getKind();
@@ -88,7 +88,7 @@ public class SymbolTable {
   /** 引数で与えられた名前の識別子を現在のスコープで探し、そのインデックスを返す。 */
   public int indexOf(String name) {
     return table.stream()
-        .filter(identifier -> identifier.name.equals(name))
+        .filter(identifier -> identifier.getName().equals(name))
         .findFirst()
         .orElseThrow()
         .getIndex();
@@ -96,10 +96,15 @@ public class SymbolTable {
 
   /** 識別子を表すクラス。 */
   private class Identifier {
+
     private String name;
     private String type;
     private IdentifierAttr kind;
     private int index;
+
+    public String getName() {
+      return name;
+    }
 
     public int getIndex() {
       return index;
