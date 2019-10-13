@@ -587,7 +587,7 @@ public class CompilationEngine implements AutoCloseable {
       reader.reset();
     }
 
-    vmWriter.bufferLabel(LABEL + thirdLabelIndex);
+    vmWriter.bufferLabel(LABEL + secondLabelIndex);
   }
 
   /**
