@@ -672,6 +672,7 @@ public class CompilationEngine implements AutoCloseable {
 
     Map<String, String> resultMap = new HashMap<>();
 
+    reader.mark(100);
     var firstLine = parseXMLLine(reader.readLine());
     // ---------------------シンボルテーブルに定義されている変数 or 関数呼び出し------------------------
     if (firstLine.get(ELEMENT_TYPE).equals("identifier")) {
@@ -702,6 +703,7 @@ public class CompilationEngine implements AutoCloseable {
 
         } else {
           /* -----------------------------サブルーチン呼び出し---------------------------- */
+          reader.reset();
           compileCallSubroutine(classSymbolTable, subroutineSymbolTable, vmWriter);
           return Map.of(DO_NOTHING, "do nothing");
         }
