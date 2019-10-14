@@ -720,6 +720,7 @@ public class CompilationEngine implements AutoCloseable {
         vmWriter.bufferPush(CONST, c);
         vmWriter.bufferCall("String.appendChar", 1);
       }
+      resultMap = Map.of(DO_NOTHING, "do nothing"); // 何もしない
 
       // ---------------------"true", "false"---------------------------------
     } else if (firstLine.get(CONTENT).equals("true") || firstLine.get(CONTENT).equals("false")) {
