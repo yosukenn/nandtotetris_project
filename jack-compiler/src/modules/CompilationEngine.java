@@ -478,8 +478,8 @@ public class CompilationEngine implements AutoCloseable {
 
     // keyword"while"の読み込み
 
-    var thirdLabelIndex = vmWriter.getCurrentLadelIndex();
-    vmWriter.bufferLabel(LABEL + thirdLabelIndex);
+    var firstLabelIndex = vmWriter.getCurrentLadelIndex();
+    vmWriter.bufferLabel(LABEL + firstLabelIndex);
 
     // symbol"(" の読み込み
     parseXMLLine(reader.readLine());
@@ -488,10 +488,11 @@ public class CompilationEngine implements AutoCloseable {
     // symbol ")" の読み込み
     parseXMLLine(reader.readLine());
 
-    var firstLabelIndex = vmWriter.getCurrentLadelIndex();
     var secondLabelIndex = vmWriter.getCurrentLadelIndex();
-    vmWriter.bufferLabel(LABEL + firstLabelIndex);
+    var thirdLabelIndex = vmWriter.getCurrentLadelIndex();
     vmWriter.bufferIf(LABEL + secondLabelIndex);
+    vmWriter.bufferGoto(LABEL + thirdLabelIndex);
+    vmWriter.bufferLabel(LABEL + secondLabelIndex);
 
     // symbol"{"の読み込み
     parseXMLLine(reader.readLine());
@@ -499,11 +500,11 @@ public class CompilationEngine implements AutoCloseable {
     var fifthLine = parseXMLLine(reader.readLine());
     compileStatements(classSymbolTable, subroutineSymbolTable, fifthLine, vmWriter);
 
-    vmWriter.bufferGoto(LABEL + thirdLabelIndex); // 条件式の演算をし直すようにしたけど、いいのか？
+    vmWriter.bufferGoto(LABEL + firstLabelIndex);
 
     // symbol"}"の読み込み
 
-    vmWriter.bufferLabel(LABEL + secondLabelIndex);
+    vmWriter.bufferLabel(LABEL + thirdLabelIndex);
   }
 
   /**
