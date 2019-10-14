@@ -713,7 +713,13 @@ public class CompilationEngine implements AutoCloseable {
 
       // ---------------------文字列：stringConstant---------------------------
     } else if (firstLine.get(ELEMENT_TYPE).equals("stringConstant")) {
-      // TODO どうする？おそらくOSのString.new()を使う？
+      var stringLength = firstLine.get(CONTENT).length();
+      vmWriter.bufferPush(CONST, stringLength);
+      vmWriter.bufferCall("String.new", 1);
+      for (char c : firstLine.get(CONTENT).toCharArray()) {
+        vmWriter.bufferPush(CONST, c);
+        vmWriter.bufferCall("String.appendChar", 1);
+      }
 
       // ---------------------"true", "false"---------------------------------
     } else if (firstLine.get(CONTENT).equals("true") || firstLine.get(CONTENT).equals("false")) {
