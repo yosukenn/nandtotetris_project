@@ -419,9 +419,14 @@ public class CompilationEngine implements AutoCloseable {
     var firstLine = parseXMLLine(reader.readLine());
 
     var secondLine = parseXMLLine(reader.readLine());
-    if (secondLine.get(CONTENT).equals("[")) { // TODO 配列は後でやる。
-      // 配列宣言"[ iterator ]"部分のコンパイル
-      compileArrayIterator(classSymbolTable, subroutineSymbolTable, secondLine, vmWriter);
+    if (secondLine.get(CONTENT).equals("[")) { // TODO イマココ。配列の場合
+      // symbol"["
+
+      // 配列イテレータのコンパイル
+      compileExpression(classSymbolTable, subroutineSymbolTable, vmWriter);
+
+      // symbol"]"のコンパイル
+      reader.readLine();
 
       // symbol"="の読み込み
       parseXMLLine(reader.readLine());
