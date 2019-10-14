@@ -293,7 +293,7 @@ public class CompilationEngine implements AutoCloseable {
           compileWhile(classSymbolTable, subroutineSymbolTable, vmWriter);
           break;
         case "return":
-          compileReturn(classSymbolTable, subroutineSymbolTable, line, vmWriter);
+          compileReturn(classSymbolTable, subroutineSymbolTable, vmWriter);
           returnFlg = 1;
           break;
         case "if":
@@ -512,24 +512,17 @@ public class CompilationEngine implements AutoCloseable {
    * 関数の返り値をスタックのプッシュした後でreturnコマンドが実行される。
    */
   public void compileReturn(
-      SymbolTable classSymbolTable,
-      SymbolTable subroutineSymbolTable,
-      Map<String, String> firstLine,
-      VMWriter vmWriter)
+      SymbolTable classSymbolTable, SymbolTable subroutineSymbolTable, VMWriter vmWriter)
       throws IOException {
-
-    // keyword"return"
-
     reader.mark(100);
     var secondLine = parseXMLLine(reader.readLine());
     if (secondLine.get(ELEMENT_TYPE).equals("identifier")
-        || secondLine.get(ELEMENT_TYPE).equals("keyword")) {
+        || secondLine.get(ELEMENT_TYPE).equals("keyword")
+        || secondLine.get(ELEMENT_TYPE).equals("integerConstant")) {
       reader.reset();
       compileExpression(classSymbolTable, subroutineSymbolTable, vmWriter); // 結果はスタックの一番上にプッシュされる。
 
       parseXMLLine(reader.readLine());
-
-    } else if (secondLine.get(ELEMENT_TYPE).equals("symbol")) {
     }
 
     vmWriter.bufferReturn();
