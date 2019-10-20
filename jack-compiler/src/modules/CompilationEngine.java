@@ -182,15 +182,25 @@ public class CompilationEngine implements AutoCloseable {
     }
   }
 
-  /** メソッド、ファンクション、コンストラクタをコンパイルする。 */
+  /** メソッド、ファンクション、コンストラクタをコンパイルする。 TODO イマココ。コンストラクタのコンパイル。 */
   public void compileSubroutine(
       Map<String, String> stringMap, VMWriter vmWriter, SymbolTable classSymbolTable)
       throws IOException {
+
+    if (stringMap.get(CONTENT).equals("constructor")) {
+      var numOfField = classSymbolTable.varCount(FIELD);
+      vmWriter.bufferPush(CONST, (int) numOfField);
+      vmWriter.bufferCall("Memory.alloc", 1); // オブジェクト用のメモリ領域確保
+      vmWriter.bufferPop(POINTER, 0); // thisのベースアドレスをオブジェクトのベースアドレスに
+
+    } else if (stringMap.get(CONTENT).equals("constructor")) {
+      vmWriter.bufferPush(ARG, 0);
+      vmWriter.bufferPop(POINTER, 0);
+    }
+
     // サブルーチンスコープのシンボルテーブルを作成
     var subroutineSymbolTable = new SymbolTable();
     subroutineSymbolTable.startSubroutine(compiledClassName);
-
-    // keyword "function", "constructor", "method"の書き込み
 
     // データ型を表すkeywordの書き込み
     var secondLine = parseXMLLine(reader.readLine());
@@ -220,8 +230,8 @@ public class CompilationEngine implements AutoCloseable {
       SymbolTable classSymbolTable, SymbolTable subroutineSymbolTable, VMWriter vmWriter)
       throws IOException {
 
-    // symbol「{」の書き込み
-    var firstLine = parseXMLLine(reader.readLine());
+    // symbol「{」の読み込み
+    parseXMLLine(reader.readLine());
 
     while (true) {
       var secondLine = parseXMLLine(reader.readLine());
@@ -235,8 +245,8 @@ public class CompilationEngine implements AutoCloseable {
       }
     }
 
-    // symbol「}」の書き込み
-    var thirdLine = Map.of(ELEMENT_TYPE, "symbol", CONTENT, "}", ENCLOSED_CONTENT, " } ");
+    // symbol「}」の読み込み
+    Map.of(ELEMENT_TYPE, "symbol", CONTENT, "}", ENCLOSED_CONTENT, " } ");
   }
 
   public void compileParameterList(SymbolTable subroutineSymbolTable) throws IOException {
@@ -377,11 +387,18 @@ public class CompilationEngine implements AutoCloseable {
       throws IOException {
     // identifier 変数名 or メソッド名 の読み込み
     var secondLine = parseXMLLine(reader.readLine());
+    var idenName = secondLine.get(CONTENT);
 
     var numOfArgs = 0; // 呼び出し先の関数の引数の数
 
     var thirdLine = parseXMLLine(reader.readLine());
     if (thirdLine.get(CONTENT).equals(".")) {
+      if (subroutineSymbolTable.kindOf(idenName) != NONE) {
+        idenName = subroutineSymbolTable.typeOf(idenName);
+      } else if (classSymbolTable.kindOf(idenName) != NONE) {
+        idenName = classSymbolTable.typeOf(idenName);
+      }
+
       // identifier
       var forthLine = parseXMLLine(reader.readLine());
 
@@ -394,8 +411,7 @@ public class CompilationEngine implements AutoCloseable {
       // symbol")"
       parseXMLLine(reader.readLine());
 
-      vmWriter.bufferCall(
-          secondLine.get(CONTENT) + thirdLine.get(CONTENT) + forthLine.get(CONTENT), numOfArgs);
+      vmWriter.bufferCall(idenName + thirdLine.get(CONTENT) + forthLine.get(CONTENT), numOfArgs);
 
     } else if (thirdLine.get(CONTENT).equals("(")) {
       // メソッドの実行主体が書かれていない場合の処理(privateメソッド)
@@ -476,11 +492,7 @@ public class CompilationEngine implements AutoCloseable {
         vmWriter.bufferPop(STATIC, classSymbolTable.indexOf(symbolName));
         return;
       case FIELD:
-        vmWriter.bufferPop(
-            STATIC,
-            (int) classSymbolTable.varCount(IdentifierAttr.STATIC)
-                + classSymbolTable.indexOf(symbolName)
-                + 1);
+        vmWriter.bufferPop(THIS, classSymbolTable.indexOf(symbolName));
         return;
       case NONE:
         throw new IllegalStateException("シンボルテーブルに登録されていない変数ですねぇ。");
@@ -747,7 +759,7 @@ public class CompilationEngine implements AutoCloseable {
       // ---------------------keyword "this"--------------------------------
     } else if (firstLine.get(CONTENT).equals("this")) {
 
-      resultMap = Map.of(SEGMENT, ARG.getCode(), INDEX, "0");
+      resultMap = Map.of(SEGMENT, POINTER.getCode(), INDEX, "0");
 
       // ---------------------定数：integerConstant---------------------------
     } else if (firstLine.get(ELEMENT_TYPE).equals("integerConstant")) {

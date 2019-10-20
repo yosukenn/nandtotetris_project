@@ -30,7 +30,7 @@ public class SymbolTable {
    * （つまり、サブルーチンのシンボルテーブルをリセットする。）<br>
    */
   public void startSubroutine(String type) {
-    // define("this", type, ARG); // TODO サブルーチンを呼び出したインスタンス自身を thisとしてシンボルテーブルに登録する必要がある？
+    define("this", type, ARG); // サブルーチンの最初の引数はthisオブジェクトを参照する。
   }
 
   /**
@@ -81,7 +81,11 @@ public class SymbolTable {
 
   /** 引数で与えられた名前の識別子を現在のスコープで探し、その型を返す。 */
   public String typeOf(String name) {
-    return "int"; // 仮
+    return table.stream()
+        .filter(identifier -> identifier.getName().equals(name))
+        .findFirst()
+        .orElseThrow()
+        .getType();
   }
 
   /** 引数で与えられた名前の識別子を現在のスコープで探し、そのインデックスを返す。 */
@@ -97,12 +101,18 @@ public class SymbolTable {
   private class Identifier {
 
     private String name;
+
     private String type;
+
     private IdentifierAttr kind;
     private int index;
 
     public String getName() {
       return name;
+    }
+
+    public String getType() {
+      return type;
     }
 
     public int getIndex() {
