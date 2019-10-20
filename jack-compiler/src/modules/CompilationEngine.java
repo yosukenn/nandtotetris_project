@@ -431,12 +431,12 @@ public class CompilationEngine implements AutoCloseable {
       vmWriter.bufferArithmetic(ArithmeticCommand.ADD);
       vmWriter.bufferPop(POINTER, 1); // 配列はthatセグメントを使う。
 
+      // symbol"="の読み込み
+      parseXMLLine(reader.readLine());
+
       compileExpression(classSymbolTable, subroutineSymbolTable, vmWriter);
 
       vmWriter.bufferPop(THAT, 0);
-
-      // symbol"="の読み込み
-      parseXMLLine(reader.readLine()); // この分岐の中じゃなくない？
 
     } else {
       compileExpression(
@@ -663,8 +663,10 @@ public class CompilationEngine implements AutoCloseable {
     var thirdLine = parseXMLLine(reader.readLine()); // and演算子: &
     if (thirdLine.get(CONTENT).equals("&amp;")) {
       var resultMap2 = compileTerm(classSymbolTable, subroutineSymbolTable, vmWriter);
-      vmWriter.bufferPush(
-          Segment.fromCode(resultMap2.get(SEGMENT)), Integer.parseInt(resultMap2.get(INDEX)));
+      if (!resultMap1.containsKey(DO_NOTHING)) {
+        vmWriter.bufferPush(
+            Segment.fromCode(resultMap2.get(SEGMENT)), Integer.parseInt(resultMap2.get(INDEX)));
+      }
       vmWriter.bufferArithmetic(ArithmeticCommand.fromCode("&"));
 
     } else {
@@ -749,7 +751,7 @@ public class CompilationEngine implements AutoCloseable {
       compileExpression(classSymbolTable, subroutineSymbolTable, vmWriter);
 
       // ")" の読み取り
-      var secondLine = parseXMLLine(reader.readLine());
+      parseXMLLine(reader.readLine());
 
       // ---------------------negate---------------------------------
       // ---------------------not------------------------------------
