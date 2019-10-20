@@ -8,7 +8,9 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -563,21 +565,41 @@ public class CompilationEngine implements AutoCloseable {
     var secondLabelIndex = vmWriter.getCurrentLadelIndex();
     var thirdLabelIndex = vmWriter.getCurrentLadelIndex();
     vmWriter.bufferIf(LABEL + firstLabelIndex);
-    vmWriter.bufferGoto(LABEL + thirdLabelIndex); // TODO else分岐のないif文の場合不要だが、現状どうすればいいのかわからない。
-    vmWriter.bufferLabel(LABEL + firstLabelIndex);
+
+    List<Runnable> processes = new ArrayList<>();
+    processes.add(
+        () ->
+            vmWriter.bufferGoto(
+                LABEL + thirdLabelIndex)); // else分岐のないif文の場合、この処理は不要なので処理をバッファしてあとで実行する。
+    processes.add(() -> vmWriter.bufferLabel(LABEL + firstLabelIndex));
 
     // statementsのコンパイル
     var forthLine = parseXMLLine(reader.readLine());
-    compileStatements(classSymbolTable, subroutineSymbolTable, forthLine, vmWriter);
+    processes.add(
+        () -> {
+          try {
+            compileStatements(classSymbolTable, subroutineSymbolTable, forthLine, vmWriter);
+          } catch (IOException e) {
+            System.out.println("compileStatements中に例外発生でっせ。");
+            System.exit(1);
+          }
+        });
 
-    vmWriter.bufferGoto(LABEL + secondLabelIndex);
+    processes.add(() -> vmWriter.bufferGoto(LABEL + secondLabelIndex));
 
     // symbol"}"の読み込み
 
     reader.mark(100); // 取り消せるようにマーク
     var sixthLine = parseXMLLine(reader.readLine());
     if (sixthLine.get(CONTENT).equals("else")) {
+      reader.reset();
+
+      for (var process : processes) {
+        process.run();
+      }
+
       // keyword"else"
+      parseXMLLine(reader.readLine());
 
       vmWriter.bufferLabel(LABEL + thirdLabelIndex);
 
@@ -593,6 +615,10 @@ public class CompilationEngine implements AutoCloseable {
       // symbol"}"の読み込み
     } else {
       reader.reset();
+
+      for (int i = 1; i <= (processes.size() - 1); i++) {
+        processes.get(i).run();
+      }
     }
 
     vmWriter.bufferLabel(LABEL + secondLabelIndex);
