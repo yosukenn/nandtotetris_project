@@ -419,7 +419,7 @@ public class CompilationEngine implements AutoCloseable {
     var firstLine = parseXMLLine(reader.readLine());
 
     var secondLine = parseXMLLine(reader.readLine());
-    if (secondLine.get(CONTENT).equals("[")) { // TODO イマココ。配列の場合
+    if (secondLine.get(CONTENT).equals("[")) {
       // symbol"["
 
       // 配列イテレータのコンパイル
@@ -428,13 +428,22 @@ public class CompilationEngine implements AutoCloseable {
       // symbol"]"のコンパイル
       reader.readLine();
 
-      // symbol"="の読み込み
-      parseXMLLine(reader.readLine());
-    }
+      vmWriter.bufferArithmetic(ArithmeticCommand.ADD);
+      vmWriter.bufferPop(POINTER, 1); // 配列はthatセグメントを使う。
 
-    compileExpression(
-        classSymbolTable, subroutineSymbolTable, vmWriter); // 式が評価され、その結果がスタックにプッシュされる
-    logicalPop(classSymbolTable, subroutineSymbolTable, vmWriter, firstLine.get(CONTENT));
+      compileExpression(classSymbolTable, subroutineSymbolTable, vmWriter);
+
+      vmWriter.bufferPop(THAT, 0);
+
+      // symbol"="の読み込み
+      parseXMLLine(reader.readLine()); // この分岐の中じゃなくない？
+
+    } else {
+      compileExpression(
+          classSymbolTable, subroutineSymbolTable, vmWriter); // 式が評価され、その結果がスタックにプッシュされる
+
+      logicalPop(classSymbolTable, subroutineSymbolTable, vmWriter, firstLine.get(CONTENT));
+    }
 
     // symbol";"の読み込み
     parseXMLLine(reader.readLine());
