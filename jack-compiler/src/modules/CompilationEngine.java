@@ -2,6 +2,7 @@ package modules;
 
 import static modules.data.IdentifierAttr.FIELD;
 import static modules.data.IdentifierAttr.NONE;
+import static modules.data.IdentifierAttr.VAR;
 import static modules.data.Segment.*;
 
 import java.io.BufferedReader;
@@ -387,41 +388,70 @@ public class CompilationEngine implements AutoCloseable {
       throws IOException {
     // identifier 変数名 or メソッド名 の読み込み
     var secondLine = parseXMLLine(reader.readLine());
-    var idenName = secondLine.get(CONTENT);
+    var identifierName = secondLine.get(CONTENT);
 
     var numOfArgs = 0; // 呼び出し先の関数の引数の数
 
     var thirdLine = parseXMLLine(reader.readLine());
     if (thirdLine.get(CONTENT).equals(".")) {
-      if (subroutineSymbolTable.kindOf(idenName) != NONE) {
-        idenName = subroutineSymbolTable.typeOf(idenName);
-      } else if (classSymbolTable.kindOf(idenName) != NONE) {
-        idenName = classSymbolTable.typeOf(idenName);
+      if (subroutineSymbolTable.kindOf(identifierName) != NONE
+          || classSymbolTable.kindOf(identifierName) != NONE) {
+
+        var index = 0;
+        Segment segment = CONST;
+        if (subroutineSymbolTable.kindOf(identifierName) != NONE) {
+          index = subroutineSymbolTable.indexOf(identifierName);
+          segment = subroutineSymbolTable.kindOf(identifierName) == VAR ? LOCAL : ARG;
+          identifierName = subroutineSymbolTable.typeOf(identifierName);
+        } else if (classSymbolTable.kindOf(identifierName) != NONE) {
+          index = classSymbolTable.indexOf(identifierName);
+          segment = classSymbolTable.kindOf(identifierName) == FIELD ? THIS : STATIC;
+          identifierName = classSymbolTable.typeOf(identifierName);
+        }
+        // メソッド名を示すidentifier
+        var forthLine = parseXMLLine(reader.readLine());
+        // symbol"("
+        parseXMLLine(reader.readLine());
+
+        if (segment != CONST) {
+          vmWriter.bufferPush(segment, index); // メソッドを呼び出したオブジェクトを引数としてプッシュしておく
+        } else {
+          throw new IllegalStateException("Illegal Segment: " + CONST);
+        }
+
+        numOfArgs =
+            compileExpressionList(
+                classSymbolTable, subroutineSymbolTable, vmWriter); // 引数のプッシュを済ませる。
+        numOfArgs = numOfArgs + 1;
+
+        // symbol")"
+        parseXMLLine(reader.readLine());
+
+        vmWriter.bufferCall(identifierName + "." + forthLine.get(CONTENT), numOfArgs);
+
+        vmWriter.bufferPop(TEMP, 0); // メソッドを呼び出したオブジェクトがスタックにプッシュされたままなので、tempに逃しておく
+
+      } else {
+        // メソッド名を示すidentifier
+        var forthLine = parseXMLLine(reader.readLine());
+        // symbol"("
+        parseXMLLine(reader.readLine());
+
+        numOfArgs = compileExpressionList(classSymbolTable, subroutineSymbolTable, vmWriter);
+
+        // symbol")"
+        parseXMLLine(reader.readLine());
+
+        vmWriter.bufferCall(identifierName + "." + forthLine.get(CONTENT), numOfArgs);
       }
 
-      // identifier
-      var forthLine = parseXMLLine(reader.readLine());
-
-      // symbol"("
-      parseXMLLine(reader.readLine());
-
-      numOfArgs =
-          compileExpressionList(classSymbolTable, subroutineSymbolTable, vmWriter); // 引数のプッシュを済ませる。
-
-      // symbol")"
-      parseXMLLine(reader.readLine());
-
-      vmWriter.bufferCall(idenName + thirdLine.get(CONTENT) + forthLine.get(CONTENT), numOfArgs);
-
     } else if (thirdLine.get(CONTENT).equals("(")) {
-      // メソッドの実行主体が書かれていない場合の処理(privateメソッド)
-
       numOfArgs = compileExpressionList(classSymbolTable, subroutineSymbolTable, vmWriter);
 
       // symbol")"
       parseXMLLine(reader.readLine());
 
-      vmWriter.bufferCall(compiledClassName + "." + secondLine.get(CONTENT), numOfArgs);
+      vmWriter.bufferCall(compiledClassName + "." + identifierName, numOfArgs);
     }
   }
 
@@ -551,6 +581,8 @@ public class CompilationEngine implements AutoCloseable {
       compileExpression(classSymbolTable, subroutineSymbolTable, vmWriter); // 結果はスタックの一番上にプッシュされる。
 
       parseXMLLine(reader.readLine());
+    } else {
+      vmWriter.bufferPush(CONST, 0); // voidのサブルーチンの戻り値は0
     }
 
     vmWriter.bufferReturn();
