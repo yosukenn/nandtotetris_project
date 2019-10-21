@@ -5,6 +5,7 @@ import static modules.data.IdentifierAttr.*;
 import java.util.HashSet;
 import java.util.Set;
 import modules.data.IdentifierAttr;
+import modules.data.SubroutineType;
 
 public class SymbolTable {
 
@@ -29,8 +30,10 @@ public class SymbolTable {
    * 新しいサブルーチンのスコープを開始する。<br>
    * （つまり、サブルーチンのシンボルテーブルをリセットする。）<br>
    */
-  public void startSubroutine(String type) {
-    define("this", type, ARG); // サブルーチンの最初の引数はthisオブジェクトを参照する。
+  public void startSubroutine(String type, SubroutineType subroutineType) {
+    if (subroutineType != null && subroutineType == SubroutineType.METHOD) {
+      define("this", type, ARG); // サブルーチンの最初の引数はthisオブジェクトを参照する。
+    }
   }
 
   /**

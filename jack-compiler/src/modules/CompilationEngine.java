@@ -18,6 +18,7 @@ import java.util.regex.Pattern;
 import modules.data.ArithmeticCommand;
 import modules.data.IdentifierAttr;
 import modules.data.Segment;
+import modules.data.SubroutineType;
 
 /**
  * 再帰によるトップダウン式の解析器<br>
@@ -193,15 +194,11 @@ public class CompilationEngine implements AutoCloseable {
       vmWriter.bufferPush(CONST, (int) numOfField);
       vmWriter.bufferCall("Memory.alloc", 1); // オブジェクト用のメモリ領域確保
       vmWriter.bufferPop(POINTER, 0); // thisのベースアドレスをオブジェクトのベースアドレスに
-
-    } else if (stringMap.get(CONTENT).equals("constructor")) {
-      vmWriter.bufferPush(ARG, 0);
-      vmWriter.bufferPop(POINTER, 0);
     }
 
     // サブルーチンスコープのシンボルテーブルを作成
     var subroutineSymbolTable = new SymbolTable();
-    subroutineSymbolTable.startSubroutine(compiledClassName);
+    subroutineSymbolTable.startSubroutine(compiledClassName, SubroutineType.fromCode(stringMap.get(CONTENT)));
 
     // データ型を表すkeywordの書き込み
     var secondLine = parseXMLLine(reader.readLine());

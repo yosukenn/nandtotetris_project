@@ -23,7 +23,7 @@ public enum Segment {
     return Arrays.stream(attrs).filter(attr -> attr.code.equals(code)).findFirst().orElseThrow();
   }
 
-  Segment(String raw) {
-    this.code = raw;
+  Segment(String code) {
+    this.code = code;
   }
 }
