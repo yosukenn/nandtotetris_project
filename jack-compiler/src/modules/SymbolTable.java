@@ -32,7 +32,8 @@ public class SymbolTable {
    */
   public void startSubroutine(String type, SubroutineType subroutineType) {
     if (subroutineType != null && subroutineType == SubroutineType.METHOD) {
-      define("this", type, ARG); // サブルーチンの最初の引数はthisオブジェクトを参照する。
+      // メソッドの場合、サブルーチンの最初の引数はthisオブジェクトを参照する。呼び出し元のオブジェクトが引数としてスタックにプッシュされるため。
+      define("this", type, ARG);
     }
   }
 
