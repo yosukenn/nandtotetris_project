@@ -198,7 +198,8 @@ public class CompilationEngine implements AutoCloseable {
 
     // サブルーチンスコープのシンボルテーブルを作成
     var subroutineSymbolTable = new SymbolTable();
-    subroutineSymbolTable.startSubroutine(compiledClassName, SubroutineType.fromCode(stringMap.get(CONTENT)));
+    subroutineSymbolTable.startSubroutine(
+        compiledClassName, SubroutineType.fromCode(stringMap.get(CONTENT)));
 
     // データ型を表すkeywordの書き込み
     var secondLine = parseXMLLine(reader.readLine());
@@ -416,6 +417,8 @@ public class CompilationEngine implements AutoCloseable {
           throw new IllegalStateException("Illegal Segment: " + CONST);
         }
 
+        int thisArgCount = countThisArg();
+
         numOfArgs =
             compileExpressionList(
                 classSymbolTable, subroutineSymbolTable, vmWriter); // 引数のプッシュを済ませる。
@@ -428,11 +431,17 @@ public class CompilationEngine implements AutoCloseable {
 
         vmWriter.bufferPop(TEMP, 0); // メソッドを呼び出したオブジェクトがスタックにプッシュされたままなので、tempに逃しておく
 
+        for (int i = thisArgCount; i > 0; i--) {
+          vmWriter.bufferPop(TEMP, 0); // 引数thisがスタックにプッシュされたままなので、tempに逃しておく
+        }
+
       } else {
         // メソッド名を示すidentifier
         var forthLine = parseXMLLine(reader.readLine());
         // symbol"("
         parseXMLLine(reader.readLine());
+
+        int thisArgCount = countThisArg();
 
         numOfArgs = compileExpressionList(classSymbolTable, subroutineSymbolTable, vmWriter);
 
@@ -440,16 +449,46 @@ public class CompilationEngine implements AutoCloseable {
         parseXMLLine(reader.readLine());
 
         vmWriter.bufferCall(identifierName + "." + forthLine.get(CONTENT), numOfArgs);
+
+        for (int i = thisArgCount; i > 0; i--) {
+          vmWriter.bufferPop(TEMP, 0);
+        }
       }
 
     } else if (thirdLine.get(CONTENT).equals("(")) {
+      int thisArgCount = countThisArg();
+
       numOfArgs = compileExpressionList(classSymbolTable, subroutineSymbolTable, vmWriter);
 
       // symbol")"
       parseXMLLine(reader.readLine());
 
       vmWriter.bufferCall(compiledClassName + "." + identifierName, numOfArgs);
+
+      for (int i = thisArgCount; i > 0; i--) {
+        vmWriter.bufferPop(TEMP, 0);
+      }
     }
+  }
+
+  private int countThisArg() throws IOException {
+    reader.mark(100);
+    int thisArgCount = 0;
+    while (true) {
+      var token = parseXMLLine(reader.readLine()).get(CONTENT);
+      if (token.equals("this")) {
+        thisArgCount++;
+      }
+
+      if (token.equals(")")) {
+        if (parseXMLLine(reader.readLine()).get(CONTENT).equals(";")) {
+          reader.reset();
+          break;
+        }
+      }
+    }
+
+    return thisArgCount;
   }
 
   /**
@@ -787,6 +826,8 @@ public class CompilationEngine implements AutoCloseable {
 
       // ---------------------keyword "this"--------------------------------
     } else if (firstLine.get(CONTENT).equals("this")) {
+      vmWriter.bufferPush(ARG, 0);
+      vmWriter.bufferPop(POINTER, 0);
 
       resultMap = Map.of(SEGMENT, POINTER.getCode(), INDEX, "0");
 
