@@ -194,6 +194,10 @@ public class CompilationEngine implements AutoCloseable {
       vmWriter.bufferPush(CONST, (int) numOfField);
       vmWriter.bufferCall("Memory.alloc", 1); // オブジェクト用のメモリ領域確保
       vmWriter.bufferPop(POINTER, 0); // thisのベースアドレスをオブジェクトのベースアドレスに
+    } else if (stringMap.get(CONTENT).equals("method")) {
+      // メソッドの場合、呼び出し元のオブジェクトは0番目の引数としてプッシュされているので、ポップしてポインタを初期化する
+      vmWriter.bufferPush(ARG, 0);
+      vmWriter.bufferPop(POINTER, 0);
     }
 
     // サブルーチンスコープのシンボルテーブルを作成
@@ -458,12 +462,15 @@ public class CompilationEngine implements AutoCloseable {
     } else if (thirdLine.get(CONTENT).equals("(")) {
       int thisArgCount = countThisArg();
 
-      numOfArgs = compileExpressionList(classSymbolTable, subroutineSymbolTable, vmWriter);
+      vmWriter.bufferPush(POINTER, 0); // 呼び出し元が書かれていない=thisオブジェクトが呼び出した
+      numOfArgs = compileExpressionList(classSymbolTable, subroutineSymbolTable, vmWriter) + 1;
 
       // symbol")"
       parseXMLLine(reader.readLine());
 
       vmWriter.bufferCall(compiledClassName + "." + identifierName, numOfArgs);
+
+      vmWriter.bufferPop(TEMP, 0); // メソッドを呼び出したオブジェクトがスタックにプッシュされたままなので、tempに逃しておく
 
       for (int i = thisArgCount; i > 0; i--) {
         vmWriter.bufferPop(TEMP, 0);
@@ -826,8 +833,6 @@ public class CompilationEngine implements AutoCloseable {
 
       // ---------------------keyword "this"--------------------------------
     } else if (firstLine.get(CONTENT).equals("this")) {
-      vmWriter.bufferPush(ARG, 0);
-      vmWriter.bufferPop(POINTER, 0);
 
       resultMap = Map.of(SEGMENT, POINTER.getCode(), INDEX, "0");
 
@@ -848,8 +853,12 @@ public class CompilationEngine implements AutoCloseable {
 
       // ---------------------"true", "false"---------------------------------
     } else if (firstLine.get(CONTENT).equals("true") || firstLine.get(CONTENT).equals("false")) {
-      var number = firstLine.get(CONTENT).equals("true") ? "1" : "0";
-      resultMap = Map.of(SEGMENT, CONST.getCode(), INDEX, number);
+      vmWriter.bufferPush(CONST, 0);
+
+      if (firstLine.get(CONTENT).equals("true")) {
+        vmWriter.bufferArithmetic(ArithmeticCommand.NOT);
+      }
+      resultMap = Map.of(DO_NOTHING, "do nothing");
     } else {
       resultMap = Map.of(DO_NOTHING, "do nothing");
     }
