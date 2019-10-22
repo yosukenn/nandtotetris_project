@@ -446,7 +446,9 @@ public class CompilationEngine implements AutoCloseable {
 
         vmWriter.bufferCall(identifierName + "." + forthLine.get(CONTENT), numOfArgs);
 
-        vmWriter.bufferPop(TEMP, 0); // なんで？
+        if (!forthLine.get(CONTENT).equals("new")) {
+          vmWriter.bufferPop(TEMP, 0); // コンストラクタ以外。なんで？
+        }
       }
 
     } else if (thirdLine.get(CONTENT).equals("(")) {
@@ -804,9 +806,10 @@ public class CompilationEngine implements AutoCloseable {
         if (kind != NONE) {
           index = classSymbolTable.indexOf(firstLine.get(CONTENT));
           if (kind == FIELD) {
-            index = (int) classSymbolTable.varCount(IdentifierAttr.STATIC) + index + 1;
+            segment = THIS;
+          } else if (kind == IdentifierAttr.STATIC) {
+            segment = STATIC;
           }
-          segment = STATIC;
           resultMap = Map.of(SEGMENT, segment.getCode(), INDEX, String.valueOf(index));
 
         } else {
