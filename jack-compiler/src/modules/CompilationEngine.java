@@ -421,8 +421,6 @@ public class CompilationEngine implements AutoCloseable {
           throw new IllegalStateException("Illegal Segment: " + CONST);
         }
 
-        int thisArgCount = countThisArg();
-
         numOfArgs =
             compileExpressionList(
                 classSymbolTable, subroutineSymbolTable, vmWriter); // 引数のプッシュを済ませる。
@@ -435,17 +433,11 @@ public class CompilationEngine implements AutoCloseable {
 
         vmWriter.bufferPop(TEMP, 0); // メソッドを呼び出したオブジェクトがスタックにプッシュされたままなので、tempに逃しておく
 
-        for (int i = thisArgCount; i > 0; i--) {
-          vmWriter.bufferPop(TEMP, 0); // 引数thisがスタックにプッシュされたままなので、tempに逃しておく
-        }
-
       } else {
         // メソッド名を示すidentifier
         var forthLine = parseXMLLine(reader.readLine());
         // symbol"("
         parseXMLLine(reader.readLine());
-
-        int thisArgCount = countThisArg();
 
         numOfArgs = compileExpressionList(classSymbolTable, subroutineSymbolTable, vmWriter);
 
@@ -454,14 +446,10 @@ public class CompilationEngine implements AutoCloseable {
 
         vmWriter.bufferCall(identifierName + "." + forthLine.get(CONTENT), numOfArgs);
 
-        for (int i = thisArgCount; i > 0; i--) {
-          vmWriter.bufferPop(TEMP, 0);
-        }
+        vmWriter.bufferPop(TEMP, 0); // なんで？
       }
 
     } else if (thirdLine.get(CONTENT).equals("(")) {
-      int thisArgCount = countThisArg();
-
       vmWriter.bufferPush(POINTER, 0); // 呼び出し元が書かれていない=thisオブジェクトが呼び出した
       numOfArgs = compileExpressionList(classSymbolTable, subroutineSymbolTable, vmWriter) + 1;
 
@@ -471,13 +459,10 @@ public class CompilationEngine implements AutoCloseable {
       vmWriter.bufferCall(compiledClassName + "." + identifierName, numOfArgs);
 
       vmWriter.bufferPop(TEMP, 0); // メソッドを呼び出したオブジェクトがスタックにプッシュされたままなので、tempに逃しておく
-
-      for (int i = thisArgCount; i > 0; i--) {
-        vmWriter.bufferPop(TEMP, 0);
-      }
     }
   }
 
+  /*
   private int countThisArg() throws IOException {
     reader.mark(100);
     int thisArgCount = 0;
@@ -497,6 +482,7 @@ public class CompilationEngine implements AutoCloseable {
 
     return thisArgCount;
   }
+  */
 
   /**
    * let文をコンパイルする。<br>
