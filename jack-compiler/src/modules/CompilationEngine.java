@@ -55,6 +55,10 @@ public class CompilationEngine implements AutoCloseable {
   private static final String MULTIPLY = "Math.multiply";
   private static final String DIVIDE = "Math.divide";
 
+  // OSクラス
+  private static final List<String> osClassList =
+      List.of("Math", "String", "Array", "Output", "Screen", "Keyboard", "Memory", "Sys");
+
   // ラベル命名用文字列
   private static final String LABEL = "label";
 
@@ -446,8 +450,9 @@ public class CompilationEngine implements AutoCloseable {
 
         vmWriter.bufferCall(identifierName + "." + forthLine.get(CONTENT), numOfArgs);
 
-        if (!forthLine.get(CONTENT).equals("new")) {
-          vmWriter.bufferPop(TEMP, 0); // コンストラクタ以外。なんで？
+        if (!forthLine.get(CONTENT).equals("new")
+            && !identifierName.equals("Keyboard")) { // TODO なんでなんかわからん。
+          vmWriter.bufferPop(TEMP, 0);
         }
       }
 
@@ -573,6 +578,7 @@ public class CompilationEngine implements AutoCloseable {
     // symbol"(" の読み込み
     parseXMLLine(reader.readLine());
     compileExpression(classSymbolTable, subroutineSymbolTable, vmWriter);
+    vmWriter.bufferArithmetic(ArithmeticCommand.NOT);
 
     // symbol ")" の読み込み
     parseXMLLine(reader.readLine());
@@ -580,8 +586,6 @@ public class CompilationEngine implements AutoCloseable {
     var secondLabelIndex = vmWriter.getCurrentLadelIndex();
     var thirdLabelIndex = vmWriter.getCurrentLadelIndex();
     vmWriter.bufferIf(LABEL + secondLabelIndex);
-    vmWriter.bufferGoto(LABEL + thirdLabelIndex);
-    vmWriter.bufferLabel(LABEL + secondLabelIndex);
 
     // symbol"{"の読み込み
     parseXMLLine(reader.readLine());
@@ -593,7 +597,7 @@ public class CompilationEngine implements AutoCloseable {
 
     // symbol"}"の読み込み
 
-    vmWriter.bufferLabel(LABEL + thirdLabelIndex);
+    vmWriter.bufferLabel(LABEL + secondLabelIndex);
   }
 
   /**
@@ -655,12 +659,10 @@ public class CompilationEngine implements AutoCloseable {
           try {
             compileStatements(classSymbolTable, subroutineSymbolTable, forthLine, vmWriter);
           } catch (IOException e) {
-            System.out.println("compileStatements中に例外発生でっせ。");
+            System.out.println("compileStatements中に例外発生");
             System.exit(1);
           }
         });
-
-    processes.add(() -> vmWriter.bufferGoto(LABEL + secondLabelIndex));
 
     // symbol"}"の読み込み
 
@@ -690,6 +692,7 @@ public class CompilationEngine implements AutoCloseable {
       // symbol"}"の読み込み
     } else {
       reader.reset();
+      vmWriter.bufferGoto(LABEL + secondLabelIndex);
 
       for (int i = 1; i <= (processes.size() - 1); i++) {
         processes.get(i).run();
