@@ -512,15 +512,33 @@ public class CompilationEngine implements AutoCloseable {
       // symbol"]"のコンパイル
       reader.readLine();
 
-      vmWriter.bufferArithmetic(ArithmeticCommand.ADD);
-      vmWriter.bufferPop(POINTER, 1); // 配列はthatセグメントを使う。
+      if (subroutineSymbolTable.kindOf(firstLine.get(CONTENT)) != NONE) {
+        if (subroutineSymbolTable.kindOf(firstLine.get(CONTENT)) == VAR) {
+          vmWriter.bufferPush(LOCAL, subroutineSymbolTable.indexOf(firstLine.get(CONTENT)));
+        } else if (subroutineSymbolTable.kindOf(firstLine.get(CONTENT)) == IdentifierAttr.ARG) {
+          vmWriter.bufferPush(ARG, subroutineSymbolTable.indexOf(firstLine.get(CONTENT)));
+        }
+      } else if (classSymbolTable.kindOf(firstLine.get(CONTENT)) != NONE) {
+        if (subroutineSymbolTable.kindOf(firstLine.get(CONTENT)) == IdentifierAttr.STATIC) {
+          vmWriter.bufferPush(STATIC, subroutineSymbolTable.indexOf(firstLine.get(CONTENT)));
+        } else if (subroutineSymbolTable.kindOf(firstLine.get(CONTENT)) == FIELD) {
+          vmWriter.bufferPush(THIS, subroutineSymbolTable.indexOf(firstLine.get(CONTENT)));
+        }
+      } else {
+        throw new IllegalStateException(
+            "not defined in symbol table. identifier: " + firstLine.get(CONTENT));
+      }
+      vmWriter.bufferArithmetic(ArithmeticCommand.ADD); // a[i]のアドレスをプッシュ
 
       // symbol"="の読み込み
       parseXMLLine(reader.readLine());
 
       compileExpression(classSymbolTable, subroutineSymbolTable, vmWriter);
 
-      vmWriter.bufferPop(THAT, 0);
+      vmWriter.bufferPop(TEMP, 0); // 一回tempに逃す
+      vmWriter.bufferPop(POINTER, 1); // a[i]のアドレスをベースアドレスに設定
+      vmWriter.bufferPush(TEMP, 0); // tempに逃した代入される値をプッシュ
+      vmWriter.bufferPop(THAT, 0); // ベースアドレスが設定されているので、that:1に目的の値をポップすればいい
 
     } else {
       compileExpression(
@@ -839,7 +857,7 @@ public class CompilationEngine implements AutoCloseable {
       vmWriter.bufferCall("String.new", 1);
       for (char c : firstLine.get(CONTENT).toCharArray()) {
         vmWriter.bufferPush(CONST, c);
-        vmWriter.bufferCall("String.appendChar", 1);
+        vmWriter.bufferCall("String.appendChar", 2);
       }
       resultMap = Map.of(DO_NOTHING, "do nothing"); // 何もしない
 
@@ -879,9 +897,34 @@ public class CompilationEngine implements AutoCloseable {
       reader.mark(100);
       var secondLine = parseXMLLine(reader.readLine());
       if (secondLine.get(CONTENT).equals("[")) {
-        // 配列宣言のコンパイル
-        compileArrayIterator(classSymbolTable, subroutineSymbolTable, secondLine, vmWriter);
-        // TODO 引数として配列を渡すことがありえるのかわからないので対応を保留。
+        // 配列イテレータのコンパイル
+        compileExpression(classSymbolTable, subroutineSymbolTable, vmWriter);
+
+        // symbol「]」の読み込み
+        reader.readLine();
+
+        if (subroutineSymbolTable.kindOf(firstLine.get(CONTENT)) != NONE) {
+          if (subroutineSymbolTable.kindOf(firstLine.get(CONTENT)) == VAR) {
+            vmWriter.bufferPush(LOCAL, subroutineSymbolTable.indexOf(firstLine.get(CONTENT)));
+          } else if (subroutineSymbolTable.kindOf(firstLine.get(CONTENT)) == IdentifierAttr.ARG) {
+            vmWriter.bufferPush(ARG, subroutineSymbolTable.indexOf(firstLine.get(CONTENT)));
+          }
+        } else if (classSymbolTable.kindOf(firstLine.get(CONTENT)) != NONE) {
+          if (subroutineSymbolTable.kindOf(firstLine.get(CONTENT)) == IdentifierAttr.STATIC) {
+            vmWriter.bufferPush(STATIC, subroutineSymbolTable.indexOf(firstLine.get(CONTENT)));
+          } else if (subroutineSymbolTable.kindOf(firstLine.get(CONTENT)) == FIELD) {
+            vmWriter.bufferPush(THIS, subroutineSymbolTable.indexOf(firstLine.get(CONTENT)));
+          }
+        } else {
+          throw new IllegalStateException(
+              "not defined in symbol table. identifier: " + firstLine.get(CONTENT));
+        }
+
+        vmWriter.bufferArithmetic(ArithmeticCommand.ADD);
+        vmWriter.bufferPop(POINTER, 1);
+        vmWriter.bufferPush(THAT, 0);
+
+        return Map.of(DO_NOTHING, "do nothing");
 
       } else {
         reader.reset();
@@ -947,20 +990,5 @@ public class CompilationEngine implements AutoCloseable {
       }
     }
     return expressionCount;
-  }
-
-  private void compileArrayIterator(
-      SymbolTable classSymbolTable,
-      SymbolTable subroutineSymbolTable,
-      Map<String, String> firstLine,
-      VMWriter vmWriter)
-      throws IOException {
-    // symbol"["のコンパイル
-
-    // 配列イテレータのコンパイル
-    compileExpression(classSymbolTable, subroutineSymbolTable, vmWriter);
-
-    // symbol「]」のコンパイル
-    reader.readLine();
   }
 }
