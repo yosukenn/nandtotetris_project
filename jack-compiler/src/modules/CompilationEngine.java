@@ -188,7 +188,7 @@ public class CompilationEngine implements AutoCloseable {
     }
   }
 
-  /** メソッド、ファンクション、コンストラクタをコンパイルする。 TODO イマココ。コンストラクタのコンパイル。 */
+  /** メソッド、ファンクション、コンストラクタをコンパイルする。 TODO イマココ。各コンパイルメソッドの"{", "}"の責任範囲を明確に決めて見直し、修正。 */
   public void compileSubroutine(
       Map<String, String> stringMap, VMWriter vmWriter, SymbolTable classSymbolTable)
       throws IOException {
@@ -241,19 +241,21 @@ public class CompilationEngine implements AutoCloseable {
     parseXMLLine(reader.readLine());
 
     while (true) {
+      reader.mark(100);
       var secondLine = parseXMLLine(reader.readLine());
       if (secondLine
           .get(CONTENT)
           .equals("var")) { // TODO { subroutineBody } の冒頭でvar宣言がされることを前提としているコードなので欠陥がある。
         compileVarDec(subroutineSymbolTable, secondLine);
       } else {
-        compileStatements(classSymbolTable, subroutineSymbolTable, secondLine, vmWriter);
+        reader.reset();
+        compileStatements(classSymbolTable, subroutineSymbolTable, vmWriter);
         break;
       }
     }
 
     // symbol「}」の読み込み
-    Map.of(ELEMENT_TYPE, "symbol", CONTENT, "}", ENCLOSED_CONTENT, " } ");
+    reader.readLine();
   }
 
   public void compileParameterList(SymbolTable subroutineSymbolTable) throws IOException {
@@ -286,20 +288,17 @@ public class CompilationEngine implements AutoCloseable {
 
   /**
    * 一連の文をコンパイルする。<br>
-   * var宣言は含まない。
+   * var宣言は含まない。"{"も"}"も読み込まない。
    *
    * @throws IOException
    */
   public void compileStatements(
-      SymbolTable classSymbolTable,
-      SymbolTable subroutineSymbolTable,
-      Map<String, String> firstLine,
-      VMWriter vmWriter)
+      SymbolTable classSymbolTable, SymbolTable subroutineSymbolTable, VMWriter vmWriter)
       throws IOException {
 
     int returnFlg = 0;
 
-    var line = firstLine;
+    var line = parseXMLLine(reader.readLine());
     while (true) {
       switch (line.get(CONTENT)) {
         case "do":
@@ -319,14 +318,15 @@ public class CompilationEngine implements AutoCloseable {
           compileIf(classSymbolTable, subroutineSymbolTable, vmWriter);
           break;
       }
+      reader.mark(100);
       var readLine = reader.readLine();
       if (readLine == null) {
         break;
       }
       line = parseXMLLine(readLine);
       if (line.get(CONTENT).equals("}")) {
+        reader.reset();
         break;
-        // TODO resetしないといけないかも
       }
     }
   }
@@ -335,9 +335,7 @@ public class CompilationEngine implements AutoCloseable {
   public void compileVarDec(SymbolTable subroutineSymbolTable, Map<String, String> firstLine)
       throws IOException {
 
-    // keyword「var」の出力
-
-    // keyword dataType の出力
+    // keyword dataType の読み込み
     var secondLine = parseXMLLine(reader.readLine());
 
     // identifierの出力
@@ -351,7 +349,6 @@ public class CompilationEngine implements AutoCloseable {
     var forthLine = parseXMLLine(reader.readLine());
     while (true) {
       if (forthLine.get(CONTENT).equals(";")) {
-        // symbol「;」の書き込み
         break;
       } else if (forthLine.get(CONTENT).equals(",")) {
 
@@ -469,28 +466,6 @@ public class CompilationEngine implements AutoCloseable {
     }
   }
 
-  /*
-  private int countThisArg() throws IOException {
-    reader.mark(100);
-    int thisArgCount = 0;
-    while (true) {
-      var token = parseXMLLine(reader.readLine()).get(CONTENT);
-      if (token.equals("this")) {
-        thisArgCount++;
-      }
-
-      if (token.equals(")")) {
-        if (parseXMLLine(reader.readLine()).get(CONTENT).equals(";")) {
-          reader.reset();
-          break;
-        }
-      }
-    }
-
-    return thisArgCount;
-  }
-  */
-
   /**
    * let文をコンパイルする。<br>
    * 変数への値の代入を行うのがlet文。
@@ -541,6 +516,7 @@ public class CompilationEngine implements AutoCloseable {
       vmWriter.bufferPop(THAT, 0); // ベースアドレスが設定されているので、that:1に目的の値をポップすればいい
 
     } else {
+      // "="のとき
       compileExpression(
           classSymbolTable, subroutineSymbolTable, vmWriter); // 式が評価され、その結果がスタックにプッシュされる
 
@@ -588,8 +564,6 @@ public class CompilationEngine implements AutoCloseable {
       SymbolTable classSymbolTable, SymbolTable subroutineSymbolTable, VMWriter vmWriter)
       throws IOException {
 
-    // keyword"while"の読み込み
-
     var firstLabelIndex = vmWriter.getCurrentLadelIndex();
     vmWriter.bufferLabel(LABEL + firstLabelIndex);
 
@@ -602,18 +576,17 @@ public class CompilationEngine implements AutoCloseable {
     parseXMLLine(reader.readLine());
 
     var secondLabelIndex = vmWriter.getCurrentLadelIndex();
-    var thirdLabelIndex = vmWriter.getCurrentLadelIndex();
     vmWriter.bufferIf(LABEL + secondLabelIndex);
 
     // symbol"{"の読み込み
     parseXMLLine(reader.readLine());
 
-    var fifthLine = parseXMLLine(reader.readLine());
-    compileStatements(classSymbolTable, subroutineSymbolTable, fifthLine, vmWriter);
-
-    vmWriter.bufferGoto(LABEL + firstLabelIndex);
+    compileStatements(classSymbolTable, subroutineSymbolTable, vmWriter);
 
     // symbol"}"の読み込み
+    parseXMLLine(reader.readLine());
+
+    vmWriter.bufferGoto(LABEL + firstLabelIndex);
 
     vmWriter.bufferLabel(LABEL + secondLabelIndex);
   }
@@ -645,8 +618,6 @@ public class CompilationEngine implements AutoCloseable {
       SymbolTable classSymbolTable, SymbolTable subroutineSymbolTable, VMWriter vmWriter)
       throws IOException {
 
-    // keyword"if"
-
     // symbol"("の読み込み
     parseXMLLine(reader.readLine());
 
@@ -656,12 +627,13 @@ public class CompilationEngine implements AutoCloseable {
     // symbol")"の読み込み
     parseXMLLine(reader.readLine());
 
-    // symbol"{"の読み込み
-
     var firstLabelIndex = vmWriter.getCurrentLadelIndex();
     var secondLabelIndex = vmWriter.getCurrentLadelIndex();
     var thirdLabelIndex = vmWriter.getCurrentLadelIndex();
     vmWriter.bufferIf(LABEL + firstLabelIndex);
+
+    // symbol"{" の読み込み
+    parseXMLLine(reader.readLine());
 
     List<Runnable> processes = new ArrayList<>();
     processes.add(
@@ -671,22 +643,38 @@ public class CompilationEngine implements AutoCloseable {
     processes.add(() -> vmWriter.bufferLabel(LABEL + firstLabelIndex));
 
     // statementsのコンパイル
-    var forthLine = parseXMLLine(reader.readLine());
     processes.add(
         () -> {
           try {
-            compileStatements(classSymbolTable, subroutineSymbolTable, forthLine, vmWriter);
+            compileStatements(classSymbolTable, subroutineSymbolTable, vmWriter);
+            // symbol"}"の読み込み
+            parseXMLLine(reader.readLine());
           } catch (IOException e) {
             System.out.println("compileStatements中に例外発生");
             System.exit(1);
           }
         });
 
-    // symbol"}"の読み込み
+    var beginCurlyBraceCount = 1;
+    var endCurlyBraceCount = 0;
+    reader.mark(1000); // 取り消せるようにマーク
+    var fifthLine = parseXMLLine(reader.readLine());
+    while (true) {
+      if (fifthLine.get(CONTENT).equals("{")) {
+        beginCurlyBraceCount++;
+      } else if (fifthLine.get(CONTENT).equals("}")) {
+        endCurlyBraceCount++;
+      }
+      if (beginCurlyBraceCount == endCurlyBraceCount) {
+        break;
+      }
+      fifthLine = parseXMLLine(reader.readLine());
+    }
 
-    reader.mark(100); // 取り消せるようにマーク
     var sixthLine = parseXMLLine(reader.readLine());
     if (sixthLine.get(CONTENT).equals("else")) {
+      // TODO 処理をバッファリングしているので、elseも}も読めていなかったのを修正したら、java.io.IOException: Mark invalid...
+      // mark(1000)にしたら解決。なんで？
       reader.reset();
 
       for (var process : processes) {
@@ -699,15 +687,16 @@ public class CompilationEngine implements AutoCloseable {
       vmWriter.bufferLabel(LABEL + thirdLabelIndex);
 
       // symbol"{"の読み込み
-      reader.readLine();
+      parseXMLLine(reader.readLine());
 
       // statementsのコンパイル
-      compileStatements(
-          classSymbolTable, subroutineSymbolTable, parseXMLLine(reader.readLine()), vmWriter);
+      compileStatements(classSymbolTable, subroutineSymbolTable, vmWriter);
 
       vmWriter.bufferGoto(LABEL + secondLabelIndex);
 
       // symbol"}"の読み込み
+      reader.readLine();
+
     } else {
       reader.reset();
       vmWriter.bufferGoto(LABEL + secondLabelIndex);
