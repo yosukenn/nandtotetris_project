@@ -376,7 +376,7 @@ public class CompilationEngine implements AutoCloseable {
       SymbolTable classSymbolTable, SymbolTable subroutineSymbolTable, VMWriter vmWriter)
       throws IOException {
 
-    compileCallSubroutine(classSymbolTable, subroutineSymbolTable, vmWriter);
+    compileCallSubroutine(classSymbolTable, subroutineSymbolTable, vmWriter, false);
 
     // symbol";"
     parseXMLLine(reader.readLine());
@@ -387,7 +387,10 @@ public class CompilationEngine implements AutoCloseable {
    * Main.main() とか main() とか。もちろん引数ありのパターンもある。
    */
   public void compileCallSubroutine(
-      SymbolTable classSymbolTable, SymbolTable subroutineSymbolTable, VMWriter vmWriter)
+      SymbolTable classSymbolTable,
+      SymbolTable subroutineSymbolTable,
+      VMWriter vmWriter,
+      boolean isNeededReturn)
       throws IOException {
     // identifier 変数名 or メソッド名 の読み込み
     var secondLine = parseXMLLine(reader.readLine());
@@ -447,8 +450,7 @@ public class CompilationEngine implements AutoCloseable {
 
         vmWriter.bufferCall(identifierName + "." + forthLine.get(CONTENT), numOfArgs);
 
-        if (!forthLine.get(CONTENT).equals("new")
-            && !identifierName.equals("Keyboard")) { // TODO なんでなんかわからん。
+        if (!isNeededReturn) { // return void なサブルーチンなら、const:0がスタックにプッシュされているのでtempに逃す。
           vmWriter.bufferPop(TEMP, 0);
         }
       }
@@ -673,8 +675,7 @@ public class CompilationEngine implements AutoCloseable {
 
     var sixthLine = parseXMLLine(reader.readLine());
     if (sixthLine.get(CONTENT).equals("else")) {
-      // TODO 処理をバッファリングしているので、elseも}も読めていなかったのを修正したら、java.io.IOException: Mark invalid...
-      // mark(1000)にしたら解決。なんで？
+      // mark(10000)にしたら解決。なんで？
       reader.reset();
 
       for (var process : processes) {
@@ -831,7 +832,7 @@ public class CompilationEngine implements AutoCloseable {
         } else {
           /* -----------------------------サブルーチン呼び出し---------------------------- */
           reader.reset();
-          compileCallSubroutine(classSymbolTable, subroutineSymbolTable, vmWriter);
+          compileCallSubroutine(classSymbolTable, subroutineSymbolTable, vmWriter, true);
           return Map.of(DO_NOTHING, "do nothing");
         }
       }
