@@ -657,7 +657,7 @@ public class CompilationEngine implements AutoCloseable {
 
     var beginCurlyBraceCount = 1;
     var endCurlyBraceCount = 0;
-    reader.mark(1000); // 取り消せるようにマーク
+    reader.mark(10000); // 取り消せるようにマーク
     var fifthLine = parseXMLLine(reader.readLine());
     while (true) {
       if (fifthLine.get(CONTENT).equals("{")) {
@@ -741,14 +741,18 @@ public class CompilationEngine implements AutoCloseable {
 
     } else if (nextEle.get(CONTENT).equals("*")) { // x * y
       var resultMap2 = compileTerm(classSymbolTable, subroutineSymbolTable, vmWriter);
-      vmWriter.bufferPush(
-          Segment.fromCode(resultMap2.get(SEGMENT)), Integer.parseInt(resultMap2.get(INDEX)));
+      if (!resultMap2.containsKey(DO_NOTHING)) {
+        vmWriter.bufferPush(
+            Segment.fromCode(resultMap2.get(SEGMENT)), Integer.parseInt(resultMap2.get(INDEX)));
+      }
       vmWriter.bufferCall(MULTIPLY, 2);
 
     } else if (nextEle.get(CONTENT).equals("/")) { // x / y
       var resultMap2 = compileTerm(classSymbolTable, subroutineSymbolTable, vmWriter);
-      vmWriter.bufferPush(
-          Segment.fromCode(resultMap2.get(SEGMENT)), Integer.parseInt(resultMap2.get(INDEX)));
+      if (!resultMap2.containsKey(DO_NOTHING)) {
+        vmWriter.bufferPush(
+            Segment.fromCode(resultMap2.get(SEGMENT)), Integer.parseInt(resultMap2.get(INDEX)));
+      }
       vmWriter.bufferCall(DIVIDE, 2);
 
     } else {
@@ -761,8 +765,10 @@ public class CompilationEngine implements AutoCloseable {
     if (secondLine.get(CONTENT).equals("&lt;") // 不等号: <
         || secondLine.get(CONTENT).equals("&gt;")) { // 不等号: >
       var resultMap2 = compileTerm(classSymbolTable, subroutineSymbolTable, vmWriter);
-      vmWriter.bufferPush(
-          Segment.fromCode(resultMap2.get(SEGMENT)), Integer.parseInt(resultMap2.get(INDEX)));
+      if (!resultMap2.containsKey(DO_NOTHING)) {
+        vmWriter.bufferPush(
+            Segment.fromCode(resultMap2.get(SEGMENT)), Integer.parseInt(resultMap2.get(INDEX)));
+      }
       var operand = secondLine.get(CONTENT).equals("&lt;") ? "<" : ">";
       vmWriter.bufferArithmetic(ArithmeticCommand.fromCode(operand));
 
