@@ -77,7 +77,7 @@ class PongGame {
 		        else {
                     if (key = 140) { let exit = true; }
 		        }
-            } // この辺りで途切れてる
+            }
 
             // Waits for the key to be released.
             while ((~(key = 0)) & (~exit)) {

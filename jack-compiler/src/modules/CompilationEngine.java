@@ -557,7 +557,7 @@ public class CompilationEngine implements AutoCloseable {
         vmWriter.bufferPop(THIS, classSymbolTable.indexOf(symbolName));
         return;
       case NONE:
-        throw new IllegalStateException("シンボルテーブルに登録されていない変数ですねぇ。");
+        throw new IllegalStateException("シンボルテーブルに登録されていない変数です。symbolName=" + symbolName);
     }
   }
 
