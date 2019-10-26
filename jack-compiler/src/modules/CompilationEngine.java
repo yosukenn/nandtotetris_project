@@ -581,12 +581,12 @@ public class CompilationEngine implements AutoCloseable {
     vmWriter.bufferIf(LABEL + secondLabelIndex);
 
     // symbol"{"の読み込み
-    parseXMLLine(reader.readLine());
+    reader.readLine();
 
     compileStatements(classSymbolTable, subroutineSymbolTable, vmWriter);
 
     // symbol"}"の読み込み
-    parseXMLLine(reader.readLine());
+    reader.readLine();
 
     vmWriter.bufferGoto(LABEL + firstLabelIndex);
 
@@ -635,7 +635,7 @@ public class CompilationEngine implements AutoCloseable {
     vmWriter.bufferIf(LABEL + firstLabelIndex);
 
     // symbol"{" の読み込み
-    parseXMLLine(reader.readLine());
+    reader.readLine();
 
     List<Runnable> processes = new ArrayList<>();
     processes.add(
@@ -650,7 +650,7 @@ public class CompilationEngine implements AutoCloseable {
           try {
             compileStatements(classSymbolTable, subroutineSymbolTable, vmWriter);
             // symbol"}"の読み込み
-            parseXMLLine(reader.readLine());
+            reader.readLine();
           } catch (IOException e) {
             System.out.println("compileStatements中に例外発生");
             System.exit(1);
@@ -675,7 +675,6 @@ public class CompilationEngine implements AutoCloseable {
 
     var sixthLine = parseXMLLine(reader.readLine());
     if (sixthLine.get(CONTENT).equals("else")) {
-      // mark(10000)にしたら解決。なんで？
       reader.reset();
 
       for (var process : processes) {
@@ -683,12 +682,12 @@ public class CompilationEngine implements AutoCloseable {
       }
 
       // keyword"else"
-      parseXMLLine(reader.readLine());
+      reader.readLine();
 
       vmWriter.bufferLabel(LABEL + thirdLabelIndex);
 
       // symbol"{"の読み込み
-      parseXMLLine(reader.readLine());
+      reader.readLine();
 
       // statementsのコンパイル
       compileStatements(classSymbolTable, subroutineSymbolTable, vmWriter);
