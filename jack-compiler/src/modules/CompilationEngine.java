@@ -153,7 +153,6 @@ public class CompilationEngine implements AutoCloseable {
   /** スタティック宣言、フィールド宣言をコンパイルする。 */
   public void compileClassVarDec(SymbolTable classSymbolTable, Map<String, String> stringMap)
       throws IOException {
-    // keyword "static", "field"の読み込み
 
     // データ型を表すkeywordの読み込み
     var secondLine = parseXMLLine(reader.readLine());
@@ -209,21 +208,21 @@ public class CompilationEngine implements AutoCloseable {
     subroutineSymbolTable.startSubroutine(
         compiledClassName, SubroutineType.fromCode(stringMap.get(CONTENT)));
 
-    // データ型を表すkeywordの書き込み
-    var secondLine = parseXMLLine(reader.readLine());
+    // データ型を表すkeywordの読み込み
+    reader.readLine();
 
-    // メソッド、ファンクション、コンストラクタ名identifierの書き込み
+    // メソッド、ファンクション、コンストラクタ名identifierの読み込み
     var thirdLine = parseXMLLine(reader.readLine());
 
-    // symbol「(」の書き込み
-    var forthLine = parseXMLLine(reader.readLine());
+    // symbol「(」読み込み
+    reader.readLine();
 
     compileParameterList(subroutineSymbolTable);
 
-    // symbol「)」の書き込み
-    var fifthLine = parseXMLLine(reader.readLine());
+    // symbol「)」の読み込み
+    reader.readLine();
 
-    // 「{ statements }」の書き込み
+    // 「{ statements }」のコンパイル
     compileSubroutineBody(classSymbolTable, subroutineSymbolTable, vmWriter);
 
     // VMWriterを使っての関数定義コマンドとstringBufferの書き込み
