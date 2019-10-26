@@ -525,7 +525,7 @@ public class CompilationEngine implements AutoCloseable {
     }
 
     // symbol";"の読み込み
-    parseXMLLine(reader.readLine());
+    reader.readLine();
   }
 
   /** スタックから値をポップし、与えられたシンボルに適したメモリセグメントにその値を割り当てる。 */
@@ -825,7 +825,31 @@ public class CompilationEngine implements AutoCloseable {
           } else if (kind == IdentifierAttr.STATIC) {
             segment = STATIC;
           }
-          resultMap = Map.of(SEGMENT, segment.getCode(), INDEX, String.valueOf(index));
+
+          reader.mark(100);
+          var nextToken = parseXMLLine(reader.readLine()).get(CONTENT);
+          if (nextToken.equals(".")) {
+            // -----サブルーチン呼び出し-----
+            var type = classSymbolTable.typeOf(firstLine.get(CONTENT));
+            vmWriter.bufferPush(segment, index);
+            var subroutineName = parseXMLLine(reader.readLine()).get(CONTENT);
+
+            // read "("
+            reader.readLine();
+            // argument
+            var numOfArgs =
+                compileExpressionList(classSymbolTable, subroutineSymbolTable, vmWriter) + 1;
+            // read ")"
+            reader.readLine();
+
+            vmWriter.bufferCall(type + "." + subroutineName, numOfArgs);
+
+            return Map.of(DO_NOTHING, "do nothing");
+
+          } else {
+            reader.reset();
+            resultMap = Map.of(SEGMENT, segment.getCode(), INDEX, String.valueOf(index));
+          }
 
         } else {
           /* -----------------------------サブルーチン呼び出し---------------------------- */
