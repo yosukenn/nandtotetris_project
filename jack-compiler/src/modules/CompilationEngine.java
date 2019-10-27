@@ -891,6 +891,12 @@ public class CompilationEngine implements AutoCloseable {
         vmWriter.bufferArithmetic(ArithmeticCommand.NOT);
       }
       resultMap = Map.of(DO_NOTHING, "do nothing");
+
+    } else if (firstLine.get(ELEMENT_TYPE).equals("keyword")
+        && firstLine.get(CONTENT).equals("null")) {
+
+      resultMap = Map.of(SEGMENT, CONST.getCode(), INDEX, "0");
+
     } else {
       resultMap = Map.of(DO_NOTHING, "do nothing");
     }
