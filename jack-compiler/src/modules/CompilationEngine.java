@@ -261,7 +261,7 @@ public class CompilationEngine implements AutoCloseable {
 
     reader.mark(100);
     var firstLine = parseXMLLine(reader.readLine()); // 引数の型を表している。
-    if (firstLine.get(ELEMENT_TYPE).equals("keyword")) {
+    if (!firstLine.get(CONTENT).equals(")")) {
       while (true) {
         // identifier(引数の変数名)を読み込み
         var secondLine = parseXMLLine(reader.readLine());
@@ -275,6 +275,7 @@ public class CompilationEngine implements AutoCloseable {
         var thirdLine = parseXMLLine(reader.readLine());
         if (thirdLine.get(CONTENT).equals(",")) {
           firstLine = parseXMLLine(reader.readLine());
+          continue;
         } else if (thirdLine.get(CONTENT).equals(")")) {
           reader.reset();
           break;
