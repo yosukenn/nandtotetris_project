@@ -648,8 +648,10 @@ public class CompilationEngine implements AutoCloseable {
         () -> {
           try {
             compileStatements(classSymbolTable, subroutineSymbolTable, vmWriter);
-            // symbol"}"の読み込み
+            // read symbol "}"
             reader.readLine();
+            // jump IF_END
+            vmWriter.bufferGoto(LABEL + secondLabelIndex);
           } catch (IOException e) {
             System.out.println("compileStatements中に例外発生");
             System.exit(1);
@@ -674,6 +676,7 @@ public class CompilationEngine implements AutoCloseable {
 
     var sixthLine = parseXMLLine(reader.readLine());
     if (sixthLine.get(CONTENT).equals("else")) {
+      /* ------------------------------else exists -------------------------------- */
       reader.reset();
 
       for (var process : processes) {
@@ -829,7 +832,7 @@ public class CompilationEngine implements AutoCloseable {
           reader.mark(100);
           var nextToken = parseXMLLine(reader.readLine()).get(CONTENT);
           if (nextToken.equals(".")) {
-            // -----サブルーチン呼び出し-----
+            /* -----------------------------サブルーチン呼び出し---------------------------- */
             var type = classSymbolTable.typeOf(firstLine.get(CONTENT));
             vmWriter.bufferPush(segment, index);
             var subroutineName = parseXMLLine(reader.readLine()).get(CONTENT);
