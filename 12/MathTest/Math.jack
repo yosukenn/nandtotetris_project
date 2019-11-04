@@ -13,9 +13,23 @@ class Math {
     /** Initializes the library. */
     function void init() {
         var int count;
+        var int countIter;
+        var int sum;
+
+        let twoToThe = Array.new(16);
+
         let count = 0;
         while (count < 15) { // once exclude top bit
-            let twoToThe[count] = count * 2;
+            let sum = 1;
+            let countIter = count;
+
+            while (countIter > 0) {
+                let sum = sum * 2;
+                let countIter = countIter - 1;
+            }
+
+            let twoToThe[count] = sum;
+            let count = count + 1;
         }
         return;
     }
@@ -26,12 +40,13 @@ class Math {
     */
     function boolean bit(int x, int j) {
         var int sum;
+
         let sum = 0;
         while (twoToThe[14 - j]) {
             let sum = sum + x; // left shift
         }
 
-        if (sum > 16383) { // 2の14乗である16384以上
+        if ((sum > twoToThe[14]) | (sum = twoToThe[14])) {
             return true;
         }
         else {
@@ -87,6 +102,7 @@ class Math {
         var int absX;
         var int absY;
         var int q;
+
         if (((x < 0) & (y < 0)) | ((x > 0) & (y > 0))) {
             let sign = 1;
         } else {
