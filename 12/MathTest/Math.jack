@@ -12,7 +12,8 @@ class Math {
 
     /** Initializes the library. */
     function void init() {
-        var int count = 0;
+        var int count;
+        let count = 0;
         while (count < 15) { // once exclude top bit
             let twoToThe[count] = count * 2;
         }
@@ -54,14 +55,18 @@ class Math {
      *  the Jack expressions x*y and multiply(x,y) return the same value.
      */
     function int multiply(int x, int y) {
+        var int sum;
+        var int shiftedX;
+        var int count;
+
         // x, y is positive.
         if (y = 2) {
             return x + x;
         }
 
-        var int sum = 0;
-        var int shiftedX = x;
-        var int count = 0;
+        let sum = 0;
+        let shiftedX = x;
+        let count = 0;
         while (count < 16) {
             if (Math.bit(y, count) = true) {
                 let sum = sum + shiftedX;
@@ -83,7 +88,7 @@ class Math {
         var int absY;
         var int q;
         if (((x < 0) & (y < 0)) | ((x > 0) & (y > 0))) {
-            let sign = 1
+            let sign = 1;
         } else {
             let sign = -1;
         }
@@ -94,7 +99,7 @@ class Math {
 
         // divide
         if (absX < absY) { return 0; }
-        q = Math.divide(absX, 2 * absY)
+        let q = Math.divide(absX, 2 * absY);
         if (absX - (2 * q * absY) < absY) {
             return (2 * q) * sign;
         }
@@ -112,9 +117,9 @@ class Math {
         let j = 7;
         while (j > -1) {
             if (((y + twoToThe[j]) < x) | ((y + twoToThe[j] = x))) {
-                y = y + twoToThe[j];
+                let y = y + twoToThe[j];
             }
-            let j = j - 1
+            let j = j - 1;
         }
         return y;
     }
