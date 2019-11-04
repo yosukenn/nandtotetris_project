@@ -4,5 +4,4 @@
 output/
 *.xml
 *.vm
-*.jack
 data/
