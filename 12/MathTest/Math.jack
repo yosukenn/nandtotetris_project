@@ -8,10 +8,8 @@
  * Note: Jack compilers implement multiplication and division using OS method calls.
  */
 class Math {
-    static Array twoToThe;
-
-    /** Initializes the library.
-    | j|                |
+    /*
+    | j|      value     |
     | 0|0000000000000001|
     | 1|0000000000000010|
     | 2|0000000000000100|
@@ -28,9 +26,12 @@ class Math {
     |13|0010000000000000|
     |14|0100000000000000|
     |15|       ?        |
-     */
+    */
+    static Array twoToThe;
+
+    /** Initializes the library. */
     function void init() {
-        var count = 0;
+        var int count = 0;
         while (count < 15) { // once exclude top bit
             let twoToThe[count] = count * 2;
         }
@@ -42,7 +43,7 @@ class Math {
     if [j]th digits of x = 0 then returns false.
     */
     function boolean bit(int x, int j) {
-        var sum;
+        var int sum;
         let sum = 0;
         while (twoToThe[14 - j]) {
             let sum = sum + x; // left shift
@@ -58,6 +59,12 @@ class Math {
 
     /** Returns the absolute value of x. */
     function int abs(int x) {
+        if ((x > 0) | (x = 0)) {
+            return x;
+        }
+        else {
+            return x * -1;
+        }
     }
 
     /** Returns the product of x and y. 
@@ -71,9 +78,9 @@ class Math {
             return x + x;
         }
 
-        var sum = 0;
-        var shiftedX = x;
-        var count = 0;
+        var int sum = 0;
+        var int shiftedX = x;
+        var int count = 0;
         while (count < 16) {
             if (Math.bit(y, count) = true) {
                 let sum = sum + shiftedX;
@@ -90,9 +97,29 @@ class Math {
      *  the Jack expressions x/y and divide(x,y) return the same value.
      */
     function int divide(int x, int y) {
-        // x, y -> absolute value
+        var int sign;
+        var int absX;
+        var int absY;
+        var int q;
+        if (((x < 0) & (y < 0)) | ((x > 0) & (y > 0))) {
+            let sign = 1
+        } else {
+            let sign = -1;
+        }
 
-        // set sign properly
+        // x, y -> absolute value
+        let absX = Math.abs(x);
+        let absY = Math.abs(y);
+
+        // divide
+        if (absX < absY) { return 0; }
+        q = Math.divide(absX, 2 * absY)
+        if (absX - (2 * q * absY) < absY) {
+            return (2 * q) * sign;
+        }
+        else {
+            return (2 * q + 1) * sign;
+        }
     }
 
     /** Returns the integer part of the square root of x. */
