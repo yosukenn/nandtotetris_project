@@ -24,7 +24,7 @@ class Math {
             let countIter = count;
 
             while (countIter > 0) {
-                let sum = sum * 2;
+                let sum = sum + sum;
                 let countIter = countIter - 1;
             }
 
@@ -60,7 +60,7 @@ class Math {
             return x;
         }
         else {
-            return x * -1;
+            return -x;
         }
     }
 
@@ -70,7 +70,7 @@ class Math {
      *  the Jack expressions x*y and multiply(x,y) return the same value.
      */
     function int multiply(int x, int y) {
-        var int sum;
+        var int product;
         var int shiftedX;
         var int count;
 
@@ -79,17 +79,17 @@ class Math {
             return x + x;
         }
 
-        let sum = 0;
+        let product = 0;
         let shiftedX = x;
         let count = 0;
         while (count < 16) {
             if (Math.bit(y, count) = true) {
-                let sum = sum + shiftedX;
+                let product = product + shiftedX;
             }
             let shiftedX = shiftedX + shiftedX; // left shift
             let count = count + 1;
         }
-        return sum;
+        return product;
     }
 
     /** Returns the integer part of x/y.
@@ -98,16 +98,10 @@ class Math {
      *  the Jack expressions x/y and divide(x,y) return the same value.
      */
     function int divide(int x, int y) {
-        var int sign;
         var int absX;
         var int absY;
         var int q;
-
-        if (((x < 0) & (y < 0)) | ((x > 0) & (y > 0))) {
-            let sign = 1;
-        } else {
-            let sign = -1;
-        }
+        var int quo;
 
         // x, y -> absolute value
         let absX = Math.abs(x);
@@ -115,12 +109,18 @@ class Math {
 
         // divide
         if (absX < absY) { return 0; }
-        let q = Math.divide(absX, 2 * absY);
-        if (absX - (2 * q * absY) < absY) {
-            return (2 * q) * sign;
+        let q = Math.divide(absX, (absY + absY));
+        if (absX - ((q * absY) + (q * absY)) < absY) {
+            let quo =  q + q;
         }
         else {
-            return (2 * q + 1) * sign;
+            let quo = q + q + 1;
+        }
+
+        if (((x < 0) & (y < 0)) | ((x > 0) & (y > 0))) {
+            return quo;
+        } else {
+            return -quo;
         }
     }
 
