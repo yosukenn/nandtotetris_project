@@ -144,9 +144,9 @@ class Math {
         var int y;
         var int j;
         let y = 0;
-        let j = 7;
+        let j = 15;
         while (j > -1) {
-            if (((y + twoToThe[j]) < x) | ((y + twoToThe[j] = x))) {
+            if (((((y + twoToThe[j]) * (y + twoToThe[j])) < x) | (((y + twoToThe[j]) * (y + twoToThe[j])) = x)) & (((y + twoToThe[j]) * (y + twoToThe[j])) > 0)) {
                 let y = y + twoToThe[j];
             }
             let j = j - 1;
