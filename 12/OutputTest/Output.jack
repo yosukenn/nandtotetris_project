@@ -197,7 +197,7 @@ class Output {
         let address = 16384 + (32 * y) + (x / 16) // ?
         let i = 0;
         while (i < 16) {
-            do Memory.poke(startAddress + 1, blank[i]);
+            do Memory.poke(address + 1, blank[i]);
             let address = address + 32;
             let i = i + 1;
         }
@@ -207,23 +207,81 @@ class Output {
     /** Displays the given character at the cursor location,
      *  and advances the cursor one column forward. */
     function void printChar(char c) {
+        var Array letter;
+        var int x;
+        var int y;
+
+        let letter = Output.getMap(c);
+        let x = column * 8;
+        let y = line * 11;
+
+        let address = 16384 + (32 * y) + (x / 16) // ?
+        let i = 0;
+        while (i < 16) {
+            do Memory.poke(address + 1, letter[i]);
+            let address = address + 32;
+            let i = i + 1;
+        }
+
+        // move corsor
+        let column = column + 1;
+        if (column = 16) {
+            let line = line + 1;
+            let column = 0;
+        }
+        return;
     }
 
     /** displays the given string starting at the cursor location,
      *  and advances the cursor appropriately. */
     function void printString(String s) {
+        var char letter;
+        var int i;
+        var int length;
+
+        let i = 0;
+        let length = s.length();
+
+        while (length > 0) {
+            let letter = s.charAt(i);
+            do Output.printChar(letter);
+
+            let i = i + 1;
+            let length = length - 1;
+        }
+        return;
     }
 
     /** Displays the given integer starting at the cursor location,
      *  and advances the cursor appropriately. */
     function void printInt(int i) {
+        var String str;
+        var int digit;
+        var int q;
+
+        let digit = 1;
+        let q = i / 10;
+        while (q > 0) {
+            let digit = digit + 1;
+            let q = q / 10;
+        }
+
+        let str = String.new(digit);
+        do str.setInt(i);
+
+        do Output.printString(str);
+        return;
     }
 
     /** Advances the cursor to the beginning of the next line. */
     function void println() {
+        do Output.printChar(String.newLine());
+        return;
     }
 
     /** Moves the cursor one column back. */
     function void backSpace() {
+        do Output.printChar(String.backSpace());
+        return;
     }
 }
