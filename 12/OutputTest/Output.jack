@@ -19,8 +19,13 @@ class Output {
     // Character map for displaying characters
     static Array charMaps; 
 
+    field int column; // 0 <= column <= 63
+    field int line; // 0 <= line <= 22
+
     /** Initializes the screen, and locates the cursor at the screen's top-left. */
     function void init() {
+        let column = 0;
+        let line = 0;
     }
 
     // Initializes the character map array
@@ -176,6 +181,27 @@ class Output {
     /** Moves the cursor to the j-th column of the i-th row,
      *  and erases the character displayed there. */
     function void moveCursor(int i, int j) {
+        var Array blank;
+        var int address;
+        var int x;
+        var int y;
+
+        var int i;
+
+        let column = i;
+        let line = j;
+        let x = i * 8;
+        let y = j * 11;
+
+        let blank = Output.getMap(32);
+        let address = 16384 + (32 * y) + (x / 16) // ?
+        let i = 0;
+        while (i < 16) {
+            do Memory.poke(startAddress + 1, blank[i]);
+            let address = address + 32;
+            let i = i + 1;
+        }
+        return;
     }
 
     /** Displays the given character at the cursor location,
