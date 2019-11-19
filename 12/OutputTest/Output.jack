@@ -19,13 +19,14 @@ class Output {
     // Character map for displaying characters
     static Array charMaps; 
 
-    field int column; // 0 <= column <= 63
-    field int line; // 0 <= line <= 22
+    static int column; // 0 <= column <= 63
+    static int line; // 0 <= line <= 22
 
     /** Initializes the screen, and locates the cursor at the screen's top-left. */
     function void init() {
         let column = 0;
         let line = 0;
+        return;
     }
 
     // Initializes the character map array
@@ -186,8 +187,6 @@ class Output {
         var int x;
         var int y;
 
-        var int i;
-
         let column = i;
         let line = j;
         let x = i * 8;
@@ -195,8 +194,8 @@ class Output {
 
         let blank = Output.getMap(32);
         let address = 16384 + (32 * y) + (x / 16) // ?
-        let i = 0;
-        while (i < 16) {
+        let count = 0;
+        while (count < 16) {
             do Memory.poke(address + 1, blank[i]);
             let address = address + 32;
             let i = i + 1;
