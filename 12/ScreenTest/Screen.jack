@@ -78,15 +78,83 @@ class Screen {
         let b = 0;
         let adyMinusbdx = 0;
 
-        while (((a < dx) | (a = dx)) & ((b < dy) | (b = dy))) {
-            do drawPixel(x1 + a, y1 + b);
-            if (adyMinusbdx > 0) {
-                let a = a + 1;
-                let adyMinusbdx = adyMinusbdx + dy;
-            } else {
-                let b = b + 1;
-                let adyMinusbdx = adyMinusbdx - dx;
+        // diagonally right upward
+        if ((dx > 0) & (dy > 0)) {
+            while (((a < dx) | (a = dx)) & ((b < dy) | (b = dy))) {
+                do drawPixel(x1 + a, y1 + b);
+                if (adyMinusbdx < 0) {
+                    let a = a + 1;
+                    let adyMinusbdx = adyMinusbdx + dy;
+                } else {
+                    let b = b + 1;
+                    let adyMinusbdx = adyMinusbdx - dx;
+                }
             }
+            return;
+        }
+
+        // diagonally right downward
+        if ((dx > 0) & (dy < 0)) {
+            while (((a < dx) | (a = dx)) & ((b > dy) | (b = dy))) {
+                do drawPixel(x1 + a, y1 + b);
+                if (adyMinusbdx > 0) {
+                    let a = a + 1;
+                    let adyMinusbdx = adyMinusbdx + dy;
+                } else {
+                    let b = b - 1;
+                    let adyMinusbdx = adyMinusbdx - dx;
+                }
+            }
+            return;
+        }
+
+        // diagonally left upward
+        // diagonally left downward
+        if (((dx < 0) & (dy < 0)) | ((dx < 0) & (dy > 0))) {
+            do Screen.drawLine(x2, y2, x1, y1);
+            return;
+        }
+
+        // rgith horizontal
+        if ((dx > 0) & (dy = 0)) {
+            while ((x2 > (x1 + a)) | (x2 = (x1 + a))) {
+                do drawPixel(x1 + a, y2);
+                let a = a + 1;
+            }
+            return;
+        }
+
+        // left horizontal
+        if ((dx < 0) & (dy = 0)) {
+            while ((x2 < (x1 - a)) | (x2 = (x1 - a))) {
+                do drawPixel(x1 - a, y2);
+                let a = a + 1;
+            }
+            return;
+        }
+
+        // up vertical
+        if ((dx = 0) & (dy > 0)) {
+            while ((y2 > (y1 + b)) | (y2 = (y1 + b))) {
+                do drawPixel(x2, y1 + b);
+                let b = b + 1;
+            }
+            return;
+        }
+
+        // down vertical
+        if ((dx = 0) & (dy < 0)) {
+            while ((y2 < (y1 - b)) | (y2 = (y1 - b))) {
+                do drawPixel(x2, y1 - b);
+                let b = b + 1;
+            }
+            return;
+        }
+
+        // point
+        if ((dx = 0) & (dy = 0)) {
+            do drawPixel(x1, y1);
+            return;
         }
     }
 
