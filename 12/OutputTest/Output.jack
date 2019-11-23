@@ -196,14 +196,9 @@ class Output {
         let x = i * 8;
         let y = j * 11;
 
-        let blank = Output.getMap(2);
-        let address = 16384 + (32 * y) + (x / 16) // ?
-        let count = 0;
-        while (count < 16) {
-            do Memory.poke(address + 1, blank[i]);
-            let address = address + 32;
-            let i = i + 1;
-        }
+        let blank = Output.getMap(32);
+
+        
         return;
     }
 
