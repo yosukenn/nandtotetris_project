@@ -35,7 +35,7 @@ class Screen {
     }
 
     /** Draws the (x,y) pixel, using the current color. */
-    function void drawPixel(int x, int y) {
+    function void drawPixel(int x, int y) { // ignore complement
         var int targetRamAddress;
         var int targetBit;
         var int n;
@@ -44,7 +44,7 @@ class Screen {
 
         let targetRamAddress = screenBegin + (y * 32) + (x / 16);
         let targetBit = x - (x / 16);
-        
+
         let n = 1;
         if (~(targetBit = 15)) {
             let i = 15 - targetBit - 1;
@@ -54,15 +54,40 @@ class Screen {
                 let i = i - 1;
             }
         }
-
         let peeked = Memory.peek(targetRamAddress);
-        do Memory.poke(targetRamAddress, peeked & n);
+
+        if (color = true) { // black
+            do Memory.poke(targetRamAddress, peeked | n);
+        } else { // white
+            do Memory.poke(targetRamAddress, peeked & n);
+        }
 
         return;
     }
 
     /** Draws a line from pixel (x1,y1) to pixel (x2,y2), using the current color. */
     function void drawLine(int x1, int y1, int x2, int y2) {
+        var int a, b;
+        var int dx, dy;
+        var int adyMinusbdx;
+
+        let dx = x2 - x1;
+        let dy = y2 - y1;
+
+        let a = 0;
+        let b = 0;
+        let adyMinusbdx = 0;
+
+        while (((a < dx) | (a = dx)) & ((b < dy) | (b = dy))) {
+            do drawPixel(x1 + a, y1 + b);
+            if (adyMinusbdx > 0) {
+                let a = a + 1;
+                let adyMinusbdx = adyMinusbdx + dy;
+            } else {
+                let b = b + 1;
+                let adyMinusbdx = adyMinusbdx - dx;
+            }
+        }
     }
 
     /** Draws a filled rectangle whose top left corner is (x1, y1)
