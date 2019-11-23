@@ -938,10 +938,10 @@ public class CompilationEngine implements AutoCloseable {
             vmWriter.bufferPush(ARG, subroutineSymbolTable.indexOf(firstLine.get(CONTENT)));
           }
         } else if (classSymbolTable.kindOf(firstLine.get(CONTENT)) != NONE) {
-          if (subroutineSymbolTable.kindOf(firstLine.get(CONTENT)) == IdentifierAttr.STATIC) {
-            vmWriter.bufferPush(STATIC, subroutineSymbolTable.indexOf(firstLine.get(CONTENT)));
-          } else if (subroutineSymbolTable.kindOf(firstLine.get(CONTENT)) == FIELD) {
-            vmWriter.bufferPush(THIS, subroutineSymbolTable.indexOf(firstLine.get(CONTENT)));
+          if (classSymbolTable.kindOf(firstLine.get(CONTENT)) == IdentifierAttr.STATIC) {
+            vmWriter.bufferPush(STATIC, classSymbolTable.indexOf(firstLine.get(CONTENT)));
+          } else if (classSymbolTable.kindOf(firstLine.get(CONTENT)) == FIELD) {
+            vmWriter.bufferPush(THIS, classSymbolTable.indexOf(firstLine.get(CONTENT)));
           }
         } else {
           throw new IllegalStateException(

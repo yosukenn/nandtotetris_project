@@ -15,7 +15,7 @@
  * as a small filled square, indicates where the next character will be displayed.
  *
  * nand2tetrisで用意されているコンパイラだとコンパイルできないのでお手製コンパイラでコンパイルする。
- * $ cd nandtotetris_project
+ * $ cd nandtotetris_project/
  * $ java -jar jack-compiler/out/artifacts/jack_compiler_jar/jack-compiler.jar 12/OutputTest/Output.jack
  */
 class Output {
@@ -196,7 +196,7 @@ class Output {
         let x = i * 8;
         let y = j * 11;
 
-        let blank = Output.getMap(32);
+        let blank = Output.getMap(2);
         let address = 16384 + (32 * y) + (x / 16) // ?
         let count = 0;
         while (count < 16) {
