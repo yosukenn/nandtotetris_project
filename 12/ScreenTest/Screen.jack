@@ -83,7 +83,7 @@ class Screen {
         let b = 0;
         let adyMinusbdx = 0;
 
-        // diagonally right upward
+        // diagonally right downward
         if ((dx > 0) & (dy > 0)) {
             while (((a < dx) | (a = dx)) & ((b < dy) | (b = dy))) {
                 do Screen.drawPixel(x1 + a, y1 + b);
@@ -98,7 +98,7 @@ class Screen {
             return;
         }
 
-        // diagonally right downward
+        // diagonally right upward
         if ((dx > 0) & (dy < 0)) {
             while (((a < dx) | (a = dx)) & ((b > dy) | (b = dy))) {
                 do Screen.drawPixel(x1 + a, y1 + b);
@@ -107,7 +107,7 @@ class Screen {
                     let adyMinusbdx = adyMinusbdx + dy;
                 } else {
                     let b = b - 1;
-                    let adyMinusbdx = adyMinusbdx - dx;
+                    let adyMinusbdx = adyMinusbdx + dx;
                 }
             }
             return;
@@ -172,10 +172,10 @@ class Screen {
         var int dy;
 
         let a = 0;
-        let dy = y1 - y2;
+        let dy = y2 - y1;
 
-        while ((dy > a) & (dy = a)) {
-            do Screen.drawLine(x1, y1 - a, x2, y1 - a);
+        while ((dy > a) | (dy = a)) {
+            do Screen.drawLine(x1, y1 + a, x2, y1 + a);
             let a = a + 1;
         }
         return;
