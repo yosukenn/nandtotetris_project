@@ -23,16 +23,18 @@ class Output {
     // Character map for displaying characters
     static Array charMaps; 
     static int screenBegin;
-    static int column; // 1 <= column <= 64
-    static int line; // 1 <= line <= 23
+    static int column; // 0 <= column <= 63
+    static int line; // 0 <= line <= 22
     static int firstHalf; // 11111111 00000000
     static int secondHalf; // 0000000011111111
 
     /** Initializes the screen, and locates the cursor at the screen's top-left. */
     function void init() {
-        let screenBegin = 16384;
-        let column = 1;
-        let line = 1;
+        do Output.initMap();
+        
+        let screenBegin = 16383;
+        let column = 0;
+        let line = 0;
         let firstHalf = -256;
         let secondHalf = 255;
         return;
@@ -198,15 +200,17 @@ class Output {
         var int erasedValue;
         var int count;
 
+        do Memory.poke(16416, -1);
+
         let line = i;
         let column = j;
         // address
-        let r = (j * 8) - (j * 8 / 16 * 16);
+        let r = ((j + 1) * 8) - ((j + 1) * 8 / 16 * 16);
         if (r > 0) {
-            let x = j * 8 / 16 + 1;
+            let x = (j + 1) * 8 / 16 + 1;
         }
         if (r = 0) {
-            let x = j * 8 / 16;
+            let x = (j + 1) * 8 / 16;
         }
         let y = i * 11 * 32;
         let erasedAddress = screenBegin + y + x;
@@ -223,7 +227,6 @@ class Output {
                 let erasedValue = erasedValue | firstHalf;
                 let erasedValue = erasedValue & secondHalf;
             }
-
             do Memory.poke(erasedAddress, erasedValue);
             let erasedAddress = erasedAddress + 32;
             let count = count + 1;
@@ -239,18 +242,17 @@ class Output {
         var int value;
         var int r;
         var Array charMap;
-        var int origin;
         var int shiftedValue;
         var int count;
         var int shiftedCount;
     
         // adress
-        let r = (column * 8) - (column * 8 / 16 * 16);
+        let r = ((column + 1) * 8) - ((column + 1) * 8 / 16 * 16);
         if (r > 0) {
-            let x = column * 8 / 16 + 1;
+            let x = (column + 1) * 8 / 16 + 1;
         }
         if (r = 0) {
-            let x = column * 8 / 16;
+            let x = (column + 1) * 8 / 16;
         }
         let y = line * 11 * 32;
         let address = screenBegin + y + x;
@@ -268,20 +270,20 @@ class Output {
             if (r = 0) {
                 let value = value | firstHalf;
                 let value = value & secondHalf;
-                let origin = charMap[count];
+                let shiftedValue = charMap[count];
                 let shiftedCount = 0;
-                if (origin < 128) {
+                if (shiftedValue < 128) {
                     while (shiftedCount > 8) { // 8th left shift
-                        let origin = origin + origin;
+                        let shiftedValue = shiftedValue + shiftedValue;
                         let shiftedCount = shiftedCount + 1;
                     }
                 }
                 else {
                     while (shiftedCount > 8) { // 8th left shift
-                        let origin = origin + origin;
+                        let shiftedValue = shiftedValue + shiftedValue;
                         let shiftedCount = shiftedCount + 1;
                     }
-                    let origin = origin | ~32767;
+                    let shiftedValue = shiftedValue | ~32767;
                 }
                 let value = value | shiftedValue;
             }
@@ -292,12 +294,12 @@ class Output {
 
         // move cursor forward
         let column = column + 1;
-        if (column > 64) {
-            let column = 1;
+        if (column > 63) {
+            let column = 0;
             let line = line + 1;
-            if (line > 23) {
-                let line = 1;
-                let column = 1;
+            if (line > 22) {
+                let line = 0;
+                let column = 0;
             }
         }
         return;
