@@ -185,92 +185,49 @@ class Output {
     /** Moves the cursor to the j-th column of the i-th row,
      *  and erases the character displayed there. */
     function void moveCursor(int i, int j) {
-        var Array blank;
-        var int address;
         var int x;
         var int y;
+        var int r;
+        var int erasedAdress;
         var int count;
 
         let column = i;
         let line = j;
-        let x = i * 8;
-        let y = j * 11;
+        let r = (i * 8) - (i * 8 / 16 * 16);
+        if (r > 0) {
+            let x = i * 8 / 16 + 1;
+        }
+        if (r = 0) {
+            let x = i * 8 / 16;
+        }
+        let y = j * 11 * 32;
+        let erasedAdress = y + x;
 
-        let blank = Output.getMap(32);
-
-        
+        let count = 11;
+        while (count > 0) {
+            do Memory.poke(erasedAdress, 0);
+            let erasedAdress = erasedAdress + 32;
+            let count = count - 1;
+        }
         return;
     }
 
     /** Displays the given character at the cursor location,
      *  and advances the cursor one column forward. */
     function void printChar(char c) {
-        var Array letter;
-        var int address;
-        var int i;
-        var int x;
-        var int y;
 
-        let letter = Output.getMap(c);
-        let x = column * 8;
-        let y = line * 11;
-
-        let address = 16384 + (32 * y) + (x / 16) // ?
-        let i = 0;
-        while (i < 16) {
-            do Memory.poke(address + 1, letter[i]);
-            let address = address + 32;
-            let i = i + 1;
-        }
-
-        // move corsor
-        let column = column + 1;
-        if (column = 16) {
-            let line = line + 1;
-            let column = 0;
-        }
-        return;
     }
 
     /** displays the given string starting at the cursor location,
      *  and advances the cursor appropriately. */
     function void printString(String s) {
-        var char letter;
-        var int i;
-        var int length;
 
-        let i = 0;
-        let length = s.length();
-
-        while (length > 0) {
-            let letter = s.charAt(i);
-            do Output.printChar(letter);
-
-            let i = i + 1;
-            let length = length - 1;
-        }
-        return;
     }
 
     /** Displays the given integer starting at the cursor location,
      *  and advances the cursor appropriately. */
     function void printInt(int i) {
-        var String str;
-        var int digit;
-        var int q;
-
-        let digit = 1;
-        let q = i / 10;
-        while (q > 0) {
-            let digit = digit + 1;
-            let q = q / 10;
-        }
-
-        let str = String.new(digit);
-        do str.setInt(i);
-
-        do Output.printString(str);
-        return;
+        
     }
 
     /** Advances the cursor to the beginning of the next line. */
