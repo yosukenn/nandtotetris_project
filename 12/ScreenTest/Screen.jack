@@ -49,7 +49,6 @@ class Screen {
         let targetBit = x - (x / 16 * 16); // 1 - 16
 
         if (targetBit = 0) { // divisible
-            let targetRamAddress = targetRamAddress - 1;
             let targetBit = 16;
         }
 
@@ -62,7 +61,7 @@ class Screen {
             }
         }
         if (targetBit = 16) {
-            let n = ~(-32767 & 1); // ここやってる。0000000000000001 つまり 1000000000000000（-32767）を入れたい
+            let n = 1 & -1
         }
         let peeked = Memory.peek(targetRamAddress);
 
