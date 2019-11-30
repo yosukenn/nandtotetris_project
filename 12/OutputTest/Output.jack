@@ -236,6 +236,10 @@ class Output {
         var int value;
         var int r;
         var Array charMap;
+        var int origin;
+        var int shiftedValue;
+        var int count;
+        var int shiftedCount;
     
         // adress
         let r = (column * 8) - (column * 8 / 16 * 16);
@@ -261,16 +265,27 @@ class Output {
             if (r = 0) {
                 let value = replaced | firstHalf;
                 let value = replaced & secondHalf;
-                // TODO set value
-                
+                let origin = charMap[count];
+                let shiftedCount = 0;
+                if (origin < 128) {
+                    while (shiftedCount > 8) { // 8th left shift
+                        let origin = origin + origin;
+                        let shiftedCount = shiftedCount + 1;
+                    }
+                }
+                else {
+                    while (shiftedCount > 8) { // 8th left shift
+                        let origin = origin + origin;
+                        let shiftedCount = shiftedCount + 1;
+                    }
+                    let origin = origin | ~32767;
+                }
+                let value = value | shiftedValue;
             }
-
             do Memory.poke(address, value);
             let address = address + 32;
             let count = count + 1;
         }
-
-
     }
 
     /** displays the given string starting at the cursor location,
