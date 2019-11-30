@@ -24,11 +24,15 @@ class Output {
     static Array charMaps; 
     static int column; // 0 <= column <= 63
     static int line; // 0 <= line <= 22
+    static int firstHalf; // 11111111 00000000
+    static int secondHalf; // 0000000011111111
 
     /** Initializes the screen, and locates the cursor at the screen's top-left. */
     function void init() {
         let column = 0;
         let line = 0;
+        let firstHalf = -256;
+        let secondHalf = 255;
         return;
     }
 
@@ -188,11 +192,13 @@ class Output {
         var int x;
         var int y;
         var int r;
-        var int erasedAdress;
+        var int erasedAddress;
+        var int erasedValue;
         var int count;
 
         let column = i;
         let line = j;
+        // substituted adress
         let r = (i * 8) - (i * 8 / 16 * 16);
         if (r > 0) {
             let x = i * 8 / 16 + 1;
@@ -201,12 +207,24 @@ class Output {
             let x = i * 8 / 16;
         }
         let y = j * 11 * 32;
-        let erasedAdress = y + x;
+        let erasedAddress = y + x;
 
+        // substituted value
+        let erasedValue = Memory.peek(erasedAddress);
+        if (r > 0) {
+            let erasedValue = replaced | secondHalf;
+            let erasedValue = replaced & firstHalf;
+        }
+        if (r = 0) {
+            let erasedValue = replaced | firstHalf;
+            let erasedValue = replaced & secondHalf;
+        }
+
+        // draw character
         let count = 11;
         while (count > 0) {
-            do Memory.poke(erasedAdress, 0);
-            let erasedAdress = erasedAdress + 32;
+            do Memory.poke(erasedAddress, erasedValue);
+            let erasedAddress = erasedAddress + 32;
             let count = count - 1;
         }
         return;
@@ -227,7 +245,7 @@ class Output {
     /** Displays the given integer starting at the cursor location,
      *  and advances the cursor appropriately. */
     function void printInt(int i) {
-        
+
     }
 
     /** Advances the cursor to the beginning of the next line. */
