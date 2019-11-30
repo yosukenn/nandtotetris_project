@@ -61,7 +61,7 @@ class Screen {
             }
         }
         if (targetBit = 16) {
-            let n = 1 & -1
+            let n = ~(-32767 & 1);
         }
         let peeked = Memory.peek(targetRamAddress);
 

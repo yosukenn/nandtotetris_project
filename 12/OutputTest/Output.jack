@@ -196,36 +196,35 @@ class Output {
         var int erasedValue;
         var int count;
 
-        let column = i;
-        let line = j;
-        // substituted adress
-        let r = (i * 8) - (i * 8 / 16 * 16);
+        let line = i;
+        let column = j;
+        // address
+        let r = (j * 8) - (j * 8 / 16 * 16);
         if (r > 0) {
-            let x = i * 8 / 16 + 1;
+            let x = j * 8 / 16 + 1;
         }
         if (r = 0) {
-            let x = i * 8 / 16;
+            let x = j * 8 / 16;
         }
-        let y = j * 11 * 32;
+        let y = i * 11 * 32;
         let erasedAddress = y + x;
 
-        // substituted value
-        let erasedValue = Memory.peek(erasedAddress);
-        if (r > 0) {
-            let erasedValue = replaced | secondHalf;
-            let erasedValue = replaced & firstHalf;
-        }
-        if (r = 0) {
-            let erasedValue = replaced | firstHalf;
-            let erasedValue = replaced & secondHalf;
-        }
+        // erase
+        let count = 0;
+        while (count < 11) {
+            let erasedValue = Memory.peek(erasedAddress);
+            if (r > 0) {
+                let erasedValue = replaced | secondHalf;
+                let erasedValue = replaced & firstHalf;
+            }
+            if (r = 0) {
+                let erasedValue = replaced | firstHalf;
+                let erasedValue = replaced & secondHalf;
+            }
 
-        // draw character
-        let count = 11;
-        while (count > 0) {
             do Memory.poke(erasedAddress, erasedValue);
             let erasedAddress = erasedAddress + 32;
-            let count = count - 1;
+            let count = count + 1;
         }
         return;
     }
@@ -233,6 +232,44 @@ class Output {
     /** Displays the given character at the cursor location,
      *  and advances the cursor one column forward. */
     function void printChar(char c) {
+        var int address;
+        var int value;
+        var int r;
+        var Array charMap;
+    
+        // adress
+        let r = (column * 8) - (column * 8 / 16 * 16);
+        if (r > 0) {
+            let x = column * 8 / 16 + 1;
+        }
+        if (r = 0) {
+            let x = column * 8 / 16;
+        }
+        let y = line * 11 * 32;
+        let address = y + x;
+
+        // draw charcter
+        let charMap = Output.getMap(c);
+        let count = 0;
+        while (count < 11) {
+            let value = Memory.peek(erasedAddress);
+            if (r > 0) {
+                let value = value | secondHalf;
+                let value = value & firstHalf;
+                let value = value | charMap[count];
+            }
+            if (r = 0) {
+                let value = replaced | firstHalf;
+                let value = replaced & secondHalf;
+                // TODO set value
+                
+            }
+
+            do Memory.poke(address, value);
+            let address = address + 32;
+            let count = count + 1;
+        }
+
 
     }
 
