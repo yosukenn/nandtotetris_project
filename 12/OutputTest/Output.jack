@@ -317,7 +317,13 @@ class Output {
     /** Displays the given integer starting at the cursor location,
      *  and advances the cursor appropriately. */
     function void printInt(int i) {
-
+        // 0 - 9 is 48 - 57 in ASCII code
+        var int base;
+        var char c;
+        
+        let base = 48;
+        let c = Output.getMap(48 + i);
+        do Output.printChar(c);
     }
 
     /** Advances the cursor to the beginning of the next line. */
