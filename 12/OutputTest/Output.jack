@@ -22,6 +22,7 @@ class Output {
 
     // Character map for displaying characters
     static Array charMaps; 
+    static int screenBegin;
     static int column; // 1 <= column <= 64
     static int line; // 1 <= line <= 23
     static int firstHalf; // 11111111 00000000
@@ -29,6 +30,7 @@ class Output {
 
     /** Initializes the screen, and locates the cursor at the screen's top-left. */
     function void init() {
+        let screenBegin = 16384;
         let column = 1;
         let line = 1;
         let firstHalf = -256;
@@ -207,19 +209,19 @@ class Output {
             let x = j * 8 / 16;
         }
         let y = i * 11 * 32;
-        let erasedAddress = y + x;
+        let erasedAddress = screenBegin + y + x;
 
         // erase
         let count = 0;
         while (count < 11) {
             let erasedValue = Memory.peek(erasedAddress);
             if (r > 0) {
-                let erasedValue = replaced | secondHalf;
-                let erasedValue = replaced & firstHalf;
+                let erasedValue = erasedValue | secondHalf;
+                let erasedValue = erasedValue & firstHalf;
             }
             if (r = 0) {
-                let erasedValue = replaced | firstHalf;
-                let erasedValue = replaced & secondHalf;
+                let erasedValue = erasedValue | firstHalf;
+                let erasedValue = erasedValue & secondHalf;
             }
 
             do Memory.poke(erasedAddress, erasedValue);
@@ -232,6 +234,7 @@ class Output {
     /** Displays the given character at the cursor location,
      *  and advances the cursor one column forward. */
     function void printChar(char c) {
+        var int x, y;
         var int address;
         var int value;
         var int r;
@@ -250,21 +253,21 @@ class Output {
             let x = column * 8 / 16;
         }
         let y = line * 11 * 32;
-        let address = y + x;
+        let address = screenBegin + y + x;
 
         // draw charcter
         let charMap = Output.getMap(c);
         let count = 0;
         while (count < 11) {
-            let value = Memory.peek(erasedAddress);
+            let value = Memory.peek(address);
             if (r > 0) {
                 let value = value | secondHalf;
                 let value = value & firstHalf;
                 let value = value | charMap[count];
             }
             if (r = 0) {
-                let value = replaced | firstHalf;
-                let value = replaced & secondHalf;
+                let value = value | firstHalf;
+                let value = value & secondHalf;
                 let origin = charMap[count];
                 let shiftedCount = 0;
                 if (origin < 128) {
@@ -297,6 +300,7 @@ class Output {
                 let column = 1;
             }
         }
+        return;
     }
 
     /** displays the given string starting at the cursor location,
@@ -312,6 +316,7 @@ class Output {
             let c = s.charAt(count);
             do Output.printChar(c);
         }
+        return;
     }
 
     /** Displays the given integer starting at the cursor location,
@@ -324,6 +329,7 @@ class Output {
         let base = 48;
         let c = Output.getMap(48 + i);
         do Output.printChar(c);
+        return;
     }
 
     /** Advances the cursor to the beginning of the next line. */
