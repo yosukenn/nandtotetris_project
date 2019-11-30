@@ -46,9 +46,10 @@ class Screen {
         var int peeked;
 
         let targetRamAddress = screenBegin + (y * 32) + (x / 16);
-        let targetBit = x - (x / 16 * 16); // 1 - 16
+        let targetBit = x - (x / 16 * 16); // 0 - 15
 
         if (targetBit = 0) { // divisible
+            let targetRamAddress = targetRamAddress - 1;
             let targetBit = 16;
         }
 
@@ -61,7 +62,8 @@ class Screen {
             }
         }
         if (targetBit = 16) {
-            let n = ~(-32767 & 1);
+            // let n = ~(-32767 & 1);
+            let n = ~32767;
         }
         let peeked = Memory.peek(targetRamAddress);
 
@@ -69,7 +71,7 @@ class Screen {
             do Memory.poke(targetRamAddress, peeked | n);
         }
         else { // white
-            do Memory.poke(targetRamAddress, peeked & -n);
+            do Memory.poke(targetRamAddress, peeked & ~n);
         }
 
         return;
