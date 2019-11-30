@@ -22,15 +22,15 @@ class Output {
 
     // Character map for displaying characters
     static Array charMaps; 
-    static int column; // 0 <= column <= 63
-    static int line; // 0 <= line <= 22
+    static int column; // 1 <= column <= 64
+    static int line; // 1 <= line <= 23
     static int firstHalf; // 11111111 00000000
     static int secondHalf; // 0000000011111111
 
     /** Initializes the screen, and locates the cursor at the screen's top-left. */
     function void init() {
-        let column = 0;
-        let line = 0;
+        let column = 1;
+        let line = 1;
         let firstHalf = -256;
         let secondHalf = 255;
         return;
@@ -286,12 +286,32 @@ class Output {
             let address = address + 32;
             let count = count + 1;
         }
+
+        // move cursor forward
+        let column = column + 1;
+        if (column > 64) {
+            let column = 1;
+            let line = line + 1;
+            if (line > 23) {
+                let line = 1;
+                let column = 1;
+            }
+        }
     }
 
     /** displays the given string starting at the cursor location,
      *  and advances the cursor appropriately. */
     function void printString(String s) {
+        var int length;
+        var int count;
+        var char c;
 
+        let length = s.length();
+        let count = 0;
+        while (count < length) {
+            let c = s.charAt(count);
+            do Output.printChar(c);
+        }
     }
 
     /** Displays the given integer starting at the cursor location,
