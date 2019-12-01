@@ -335,13 +335,24 @@ class Output {
 
     /** Advances the cursor to the beginning of the next line. */
     function void println() {
-        do Output.printChar(String.newLine());
+        let column = 0;
+        let line = line + 1;
+
+        if (line > 22) {
+            let line = 0;
+        }
         return;
     }
 
     /** Moves the cursor one column back. */
     function void backSpace() {
-        do Output.printChar(String.backSpace());
-        return;
+        if (column = 0) {
+            if (~(line = 0)) {
+                do Output.moveCursor(line - 1, 63);
+            }
+        }
+        else {
+            do Output.moveCursor(line, column - 1);
+        }
     }
 }
