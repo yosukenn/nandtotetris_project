@@ -3,7 +3,7 @@
 my implements of
 - Hack Computer
 - Hack Assembler
-- Hack VM
+- Jack VM Translator
 - Jack Compiler
 - Jack OS
 
