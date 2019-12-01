@@ -200,8 +200,6 @@ class Output {
         var int erasedValue;
         var int count;
 
-        do Memory.poke(16416, -1);
-
         let line = i;
         let column = j;
         // address
@@ -273,13 +271,13 @@ class Output {
                 let shiftedValue = charMap[count];
                 let shiftedCount = 0;
                 if (shiftedValue < 128) {
-                    while (shiftedCount > 8) { // 8th left shift
+                    while (shiftedCount < 8) { // 8th left shift
                         let shiftedValue = shiftedValue + shiftedValue;
                         let shiftedCount = shiftedCount + 1;
                     }
                 }
                 else {
-                    while (shiftedCount > 8) { // 8th left shift
+                    while (shiftedCount < 8) { // 8th left shift
                         let shiftedValue = shiftedValue + shiftedValue;
                         let shiftedCount = shiftedCount + 1;
                     }
@@ -317,6 +315,7 @@ class Output {
         while (count < length) {
             let c = s.charAt(count);
             do Output.printChar(c);
+            let count = count + 1;
         }
         return;
     }
