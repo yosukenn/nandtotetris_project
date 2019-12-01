@@ -7,12 +7,12 @@ my implements of
 - Jack Compiler
 - Jack OS
 
-language
+## language
 - HDL
 - Java11
 - Jack
 
-source/reference/thanks
+## source/reference/thanks
 - https://www.nand2tetris.org/
 - https://www.oreilly.co.jp/books/9784873117126/
 
