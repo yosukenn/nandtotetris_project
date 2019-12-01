@@ -1,6 +1,27 @@
-*.class
-.idea
+# gate
+*.cmp
+*.tst
 *.out
+
+# machine language
+*.hack
+
+# Hack Assembler
+./hack-assembler/add/
+./hack-assembler/hackFiles/
+./hack-assembler/max/
+./hack-assembler/pong/
+./hack-assembler/rect/
+
+# java
+*.class
+
+# editor
+.idea
+.idea/
+*.iml
+
+# output
 output/
 *.xml
 *.vm
