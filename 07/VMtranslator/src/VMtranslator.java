@@ -38,9 +38,6 @@ public class VMtranslator {
         // ParserモジュールでVMの入力ファイルのパースを行う
         for (var vmFile : vmFileList) {
           try (Parser parser = new Parser(vmFile)) {
-
-            System.out.println(vmFile);
-
             // ファイル名となる文字列を生成する
             int lastSlashIndex = vmFile.lastIndexOf("/");
             int lastDotIndex = vmFile.lastIndexOf(".");
