@@ -21,14 +21,14 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 /*
-TODO 修正できる点（多分やらないけど）
+修正できる点
  - compileXX 内でwhilu文で繰り返し処理をしなくても、再帰的にメソッドを呼び出せばもっとシンプルにかける。
  */
 
 /** 再帰によるトップダウン式の解析器<br> */
 public class CompilationEngine implements AutoCloseable {
 
-  // TODO １つも要素を持たないXML要素を1行でなくて改行して2行で出力したい。
+  // １つも要素を持たないXML要素を1行でなくて改行して2行で出力したい。
 
   BufferedReader reader;
 
@@ -116,7 +116,7 @@ public class CompilationEngine implements AutoCloseable {
       }
       break;
     }
-    // 最後にsymbol"}"を出力 TODO 過剰に読み取っていて"}"を出力できていないので、一旦無理やり出力している。
+    // 最後にsymbol"}"を出力。過剰に読み取っていて"}"を出力できていないので、一旦無理やり出力している。
     //    var fifthLine = parseXMLLine(this.reader.readLine());
     //    appendChildIncludeText(klass, fifthLine);
     appendChildIncludeText(
@@ -440,7 +440,7 @@ public class CompilationEngine implements AutoCloseable {
     var fifthLine = parseXMLLine(this.reader.readLine());
     compileStatements(whileStatement, fifthLine);
 
-    // TODO compileStatements()で行を読み込み過ぎているのを修正する必要があるが、これを修正すると崩壊するので無理やり"}"をコンパイルするようにしている。
+    // compileStatements()で行を読み込み過ぎているのを修正する必要があるが、これを修正すると崩壊するので無理やり"}"をコンパイルするようにしている。
     // symbol「}」の書き込み
     //    var sixthLine = parseXMLLine(this.reader.readLine());
     //    appendChildIncludeText(whileStatement, sixthLine);
@@ -515,7 +515,7 @@ public class CompilationEngine implements AutoCloseable {
       var seventhLine = Map.of(ELEMENT_TYPE, "symbol", CONTENT, "}", ENCLOSED_CONTENT, " } ");
       appendChildIncludeText(ifStatement, seventhLine);
     } else {
-      this.reader.reset(); // TODO 読み込んだ結果"else"がないIf文だった場合、ちゃんと読み込みを取り消せられているか確認。
+      this.reader.reset(); // 読み込んだ結果"else"がないIf文だった場合、ちゃんと読み込みを取り消せられているか確認したい
     }
   }
 
@@ -533,7 +533,7 @@ public class CompilationEngine implements AutoCloseable {
         || nextEle.get(CONTENT).equals("+")
         || nextEle.get(CONTENT).equals("-")
         || nextEle.get(CONTENT).equals("=")) {
-      // TODO "|", "*", "/", "+"が複数回出てくる場合が出てきたら対応を追加する。
+      // "|", "*", "/", "+"が複数回出てくる場合が出てきたら対応を追加する。
       // 複数の変数を代入する場合の場合
       appendChildIncludeText(expression, nextEle);
       compileTerm(expression);
