@@ -187,7 +187,7 @@ public class CompilationEngine implements AutoCloseable {
     }
   }
 
-  /** メソッド、ファンクション、コンストラクタをコンパイルする。 TODO イマココ。各コンパイルメソッドの"{", "}"の責任範囲を明確に決めて見直し、修正。 */
+  /** メソッド、ファンクション、コンストラクタをコンパイルする。 TODO 各コンパイルメソッドの"{", "}"の責任範囲を明確に決めて見直し、修正。 */
   public void compileSubroutine(
       Map<String, String> stringMap, VMWriter vmWriter, SymbolTable classSymbolTable)
       throws IOException {
@@ -244,7 +244,7 @@ public class CompilationEngine implements AutoCloseable {
       var secondLine = parseXMLLine(reader.readLine());
       if (secondLine
           .get(CONTENT)
-          .equals("var")) { // TODO { subroutineBody } の冒頭でvar宣言がされることを前提としているコードなので欠陥がある。
+          .equals("var")) { // { subroutineBody } の冒頭でvar宣言がされることを前提としているコードなので欠陥がある。
         compileVarDec(subroutineSymbolTable, secondLine);
       } else {
         reader.reset();

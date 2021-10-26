@@ -7,7 +7,7 @@ import java.io.*;
 
 public class Assembler {
     public static void main(String[] args) {
-        // コマンド引数でasmファイルを絶対パスで受け取る ex. java -jar 06.jar /Users/yosukennturner/Desktop/nand2tetris/projects/06/add/Add.asm
+        // コマンド引数でasmファイルを絶対パスで受け取る ex. java -jar 06.jar /path/to/nand2tetris/projects/06/add/Add.asm
         // Parserモジュールをインスタンス化してアセンブリファイルを読み込む準備をする
 
         // SymbolTableの初期化

@@ -15,7 +15,7 @@ public class VMtranslator {
   public static void main(String[] args) {
     // プログラムの引数がファイルであっても、ディレクトリであっても許容する。
     // コマンドライン引数
-    // ex./Users/yosukennturner/Desktop/nand2tetris/projects/07/FunctionCall/FibonacciElement
+    // ex./path/to/nand2tetris/projects/07/FunctionCall/FibonacciElement
 
     // 読み込み対象のファイルリストの生成
     List<String> vmFileList = Collections.emptyList();
